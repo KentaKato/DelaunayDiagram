@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(DelaunayDiagram CXX)
+project(DelaunayTriangulation CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -22,10 +22,10 @@ target_link_libraries(${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
 )
 
-add_executable(delaunay_diagram
-  src/delaunay_diagram.cpp
+add_executable(delaunay_triangulation
+  src/delaunay_triangulation.cpp
 )
 
-target_link_libraries(delaunay_diagram
+target_link_libraries(delaunay_triangulation
   ${PROJECT_NAME}
 )

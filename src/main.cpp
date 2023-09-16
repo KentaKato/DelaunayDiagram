@@ -1,14 +1,14 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
-#include "DelaunayDiagram/delaunay_diagram.h"
+#include "DelaunayTriangulation/delaunay_triangulation.h"
 
-using namespace delaunay_diagram;
+using namespace delaunay_triangulation;
 
 int main()
 {
-    DelaunayDiagram diagram;
-    diagram.draw();
+    DelaunayTriangulation Triangulation;
+    Triangulation.draw();
 
     return 0;
 }

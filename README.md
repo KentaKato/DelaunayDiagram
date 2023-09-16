@@ -1,1 +1,1 @@
-# DelaunayDiagram
+# DelaunayTriangulation

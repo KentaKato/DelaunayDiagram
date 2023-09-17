@@ -10,15 +10,20 @@ namespace delaunay_triangulation
 DelaunayTriangulation::DelaunayTriangulation()
     : img_(cv::Mat(image_height_, image_width_, CV_8UC3, background_color_))
 {
-    this->addPoint(100, 100);
-    this->addPoint(400, 105);
-    this->addPoint(100, 200);
+    this->addPoint(110, 100);
+    this->addPoint(430, 105);
+    this->addPoint(150, 230);
     this->addPoint(400, 205);
-    this->addPoint(100, 300);
+    this->addPoint(200, 330);
 
     edges_.emplace_back(points_[0], points_[1]);
     edges_.emplace_back(points_[2], points_[3]);
     edges_.emplace_back(points_[4], points_[0]);
+
+    triangles_.emplace_back(points_[0], points_[1], points_[2]);
+    triangles_.emplace_back(points_[0], points_[2], points_[4]);
+    this->computeCircumcircle(triangles_[0], triangles_[0].circumcircle);
+    this->computeCircumcircle(triangles_[1], triangles_[1].circumcircle);
 }
 
 void DelaunayTriangulation::addPoint(double x, double y)
@@ -39,6 +44,7 @@ void DelaunayTriangulation::createDelaunayTriangulation()
     {
         std::vector<Triangle> new_triangles;
         std::stack<Edge> edge_stack;
+    }
 
 }
 
@@ -46,6 +52,7 @@ void DelaunayTriangulation::draw()
 {
     this->drawEdges();
     this->drawPoints();
+    this->drawCircumcircles();
 
     cv::namedWindow("drawing", cv::WINDOW_AUTOSIZE|cv::WINDOW_FREERATIO);
     cv::imshow("drawing", img_);
@@ -67,7 +74,8 @@ void DelaunayTriangulation::drawPoints()
 
 void DelaunayTriangulation::drawEdge(const Edge &e)
 {
-    cv::line(img_, cv::Point(e.p1->x, e.p1->y), cv::Point(e.p2->x, e.p2->y), edge_color_, edge_thickness_, cv::LINE_AA);
+    cv::line(img_, cv::Point(e.p1->x, e.p1->y), cv::Point(e.p2->x, e.p2->y),
+             edge_color_, edge_thickness_, cv::LINE_AA);
 
 }
 
@@ -79,6 +87,20 @@ void DelaunayTriangulation::drawEdges()
     }
 }
 
+void DelaunayTriangulation::drawCircumcircle(const Triangle &t)
+{
+    cv::circle(img_, cv::Point(t.circumcircle.center.x, t.circumcircle.center.y),
+               t.circumcircle.radius, circumcircle_color_, circumcircle_thickness_, cv::LINE_AA);
+}
+
+void DelaunayTriangulation::drawCircumcircles()
+{
+    for (const auto &t : triangles_)
+    {
+        drawCircumcircle(t);
+    }
+}
+
 void DelaunayTriangulation::addBoundingTriangle()
 {
     const PointPtr p1 = std::make_shared<Point>(-1e9, -1e9);
@@ -87,8 +109,42 @@ void DelaunayTriangulation::addBoundingTriangle()
     triangles_.emplace_back(p1, p2, p3);
 }
 
-void DelaunaryTriangulation::computeCircumcircle(const Triangle &t, Circle &c)
+void DelaunayTriangulation::computeCircumcircle(const Triangle &t, Circle &c)
 {
+    // Lambda function to compute the midpoint between two points
+    auto midpoint = [](const PointPtr &a, const PointPtr &b) -> Point
+    {
+        return Point{(a->x + b->x) / 2.0, (a->y + b->y) / 2.0};
+    };
+
+    // Lambda function to compute the slope of the line between two points
+    auto slope = [](const PointPtr &a, const PointPtr &b) -> double
+    {
+        if (b->x == a->x)
+        {
+            // vertical line case
+            return INFINITY;
+        }
+        return (b->y - a->y) / (b->x - a->x);
+    };
+    // midpoints for two edges of the triangle
+    const Point m12 = midpoint(t.p1, t.p2);
+    const Point m13 = midpoint(t.p1, t.p3);
+
+    // slopes for two edges of the triangle
+    const double slope12 = slope(t.p1, t.p2);
+    const double slope13 = slope(t.p1, t.p3);
+
+    // the slopes of the perpendicular bisectors
+    double perpSlope12 = (slope12 == 0) ? INFINITY : (-1.0 / slope12);
+    double perpSlope13 = (slope13 == 0) ? INFINITY : (-1.0 / slope13);
+
+    // the intersection of the two perpendicular bisectors
+    double x = (m13.y - m12.y - perpSlope13 * m13.x + perpSlope12 * m12.x) / (perpSlope12 - perpSlope13);
+    double y = m12.y + perpSlope12 * (x - m12.x);
+
+    c.center = Point{x, y};
+    c.radius = std::sqrt(std::pow(t.p1->x - x, 2) + std::pow(t.p1->y - y, 2));
 }
 
 } // namespace delaunay_Triangulation

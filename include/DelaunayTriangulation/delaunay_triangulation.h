@@ -22,6 +22,15 @@ struct Edge
     PointPtr p2;
 };
 
+struct Circle
+{
+    Circle(){};
+    Circle(const Point center, double radius)
+        : center(center), radius(radius) {}
+    Point center = Point{0, 0};
+    double radius;
+};
+
 struct Triangle
 {
     explicit Triangle(const PointPtr &p1, const PointPtr &p2, const PointPtr &p3)
@@ -29,14 +38,7 @@ struct Triangle
     PointPtr p1;
     PointPtr p2;
     PointPtr p3;
-};
-
-struct Circle
-{
-    explicit Circle(const Point center, double radius)
-        : center(center), radius(radius) {}
-    Point center;
-    double radius;
+    Circle circumcircle;
 };
 
 
@@ -54,6 +56,9 @@ private:
     const int image_width_ = 500;
     const int image_height_ = 500;
 
+
+    const cv::Scalar circumcircle_color_ = cv::Scalar(100,100,100);
+    const double circumcircle_thickness_ = 1.;
     std::vector<Triangle> triangles_;
 
     std::vector<PointPtr> points_;
@@ -70,6 +75,8 @@ private:
     void drawPoints();
     void drawEdge(const Edge &e);
     void drawEdges();
+    void drawCircumcircle(const Triangle &t);
+    void drawCircumcircles();
     void addBoundingTriangle();
     void computeCircumcircle(const Triangle &t, Circle &c);
 

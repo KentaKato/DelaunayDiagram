@@ -1,5 +1,5 @@
 #include <iostream>
-#include <stack>
+#include <array>
 #include <opencv2/opencv.hpp>
 
 #include "DelaunayTriangulation/delaunay_triangulation.h"
@@ -16,14 +16,12 @@ DelaunayTriangulation::DelaunayTriangulation()
     this->addPoint(400, 205);
     this->addPoint(200, 330);
 
-    edges_.emplace_back(points_[0], points_[1]);
-    edges_.emplace_back(points_[2], points_[3]);
-    edges_.emplace_back(points_[4], points_[0]);
+    // edges_.emplace_back(points_[0], points_[1]);
+    // edges_.emplace_back(points_[2], points_[3]);
+    // edges_.emplace_back(points_[4], points_[0]);
 
     triangles_.emplace_back(points_[0], points_[1], points_[2]);
     triangles_.emplace_back(points_[0], points_[2], points_[4]);
-    this->computeCircumcircle(triangles_[0], triangles_[0].circumcircle);
-    this->computeCircumcircle(triangles_[1], triangles_[1].circumcircle);
 }
 
 void DelaunayTriangulation::addPoint(double x, double y)
@@ -36,28 +34,82 @@ void DelaunayTriangulation::addPoint(const PointPtr &p)
     points_.push_back(p);
 }
 
-void DelaunayTriangulation::createDelaunayTriangulation()
+void DelaunayTriangulation::createDelaunayTriangules()
 {
     this->addBoundingTriangle();
 
-    for (const auto& point : points_)
+    for (const auto &p : points_)
     {
-        std::vector<Triangle> new_triangles;
-        std::stack<Edge> edge_stack;
+        for (const auto &t : triangles_)
+        {
+            if (t.includePoint(p))
+            {
+                // remove the triangle from the list
+                triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t), triangles_.end());
+
+                // add the new triangles to the list
+                triangles_.emplace_back(t.p1, t.p2, p);
+                triangles_.emplace_back(t.p2, t.p3, p);
+                triangles_.emplace_back(t.p3, t.p1, p);
+
+                // add the edges of the triangle to the edge list
+                edge_stack_.emplace(t.p1, t.p2);
+                edge_stack_.emplace(t.p2, t.p3);
+                edge_stack_.emplace(t.p3, t.p1);
+
+                while (!edge_stack_.empty())
+                {
+                    const Edge e = edge_stack_.top();
+                    edge_stack_.pop();
+
+                    // find the triangles that include this edge
+                    std::vector<TrianglePtr> edge_triangles;
+                    for (const auto &t : triangles_)
+                    {
+                        if (t.includeEdge(e.p1, e.p2))
+                        {
+                            edge_triangles.emplace_back(std::make_shared<Triangle>(t));
+                            if (edge_triangles.size() == 2)
+                                break;
+                        }
+                    }
+
+                    if (edge_triangles.size() == 2)
+                    {
+                        auto &t1 = edge_triangles.at(0);
+                        auto &t2 = edge_triangles.at(1);
+                        if (t1 == t2)
+                            throw std::runtime_error("Duplicate triangle found");
+
+                        const PointPtr unshared_p = this->findUnsharedVertex(t1, t2);
+                        if (t1->includePoint(unshared_p))
+                        {
+                            this->flip(t1, t2);
+                        }
+                    }
+
+
+                }
+
+            }
+        }
     }
 
 }
 
+
 void DelaunayTriangulation::draw()
 {
-    this->drawEdges();
-    this->drawPoints();
+    // this->drawEdges();
     this->drawCircumcircles();
+    this->drawPoints();
+    this->drawTriangles();
 
-    cv::namedWindow("drawing", cv::WINDOW_AUTOSIZE|cv::WINDOW_FREERATIO);
+    cv::namedWindow("drawing", cv::WINDOW_AUTOSIZE | cv::WINDOW_FREERATIO);
     cv::imshow("drawing", img_);
     cv::waitKey(0);
 }
+
 
 void DelaunayTriangulation::drawPoint(const PointPtr &p)
 {
@@ -72,18 +124,36 @@ void DelaunayTriangulation::drawPoints()
     }
 }
 
-void DelaunayTriangulation::drawEdge(const Edge &e)
-{
-    cv::line(img_, cv::Point(e.p1->x, e.p1->y), cv::Point(e.p2->x, e.p2->y),
-             edge_color_, edge_thickness_, cv::LINE_AA);
+// void DelaunayTriangulation::drawEdge(const Edge &e)
+// {
+//     cv::line(img_, cv::Point(e.p1->x, e.p1->y), cv::Point(e.p2->x, e.p2->y),
+//              edge_color_, edge_thickness_, cv::LINE_AA);
 
+// }
+
+// void DelaunayTriangulation::drawEdges()
+// {
+//     for (const auto &e : edge_stack_)
+//     {
+//         drawEdge(e);
+//     }
+// }
+
+void DelaunayTriangulation::drawTriangle(const Triangle &t)
+{
+    cv::line(img_, cv::Point(t.p1->x, t.p1->y), cv::Point(t.p2->x, t.p2->y),
+             edge_color_, edge_thickness_, cv::LINE_AA);
+    cv::line(img_, cv::Point(t.p2->x, t.p2->y), cv::Point(t.p3->x, t.p3->y),
+             edge_color_, edge_thickness_, cv::LINE_AA);
+    cv::line(img_, cv::Point(t.p3->x, t.p3->y), cv::Point(t.p1->x, t.p1->y),
+             edge_color_, edge_thickness_, cv::LINE_AA);
 }
 
-void DelaunayTriangulation::drawEdges()
+void DelaunayTriangulation::drawTriangles()
 {
-    for (const auto &e : edges_)
+    for (const auto &t : triangles_)
     {
-        drawEdge(e);
+        drawTriangle(t);
     }
 }
 
@@ -109,7 +179,89 @@ void DelaunayTriangulation::addBoundingTriangle()
     triangles_.emplace_back(p1, p2, p3);
 }
 
-void DelaunayTriangulation::computeCircumcircle(const Triangle &t, Circle &c)
+PointPtr DelaunayTriangulation::findUnsharedVertex(const TrianglePtr &ref, const TrianglePtr &target) const
+{
+    if (target->p1 != ref->p1 && target->p1 != ref->p2 && target->p1 != ref->p3)
+        return target->p1;
+    if (target->p2 != ref->p1 && target->p2 != ref->p2 && target->p2 != ref->p3)
+        return target->p2;
+    if (target->p3 != ref->p1 && target->p3 != ref->p2 && target->p3 != ref->p3)
+        return target->p3;
+    throw std::runtime_error("No unshared vertex found");
+};
+
+Edge DelaunayTriangulation::findSharedEdge(const TrianglePtr &t1,
+                                                              const TrianglePtr &t2) const
+{
+    if (t1 == t2)
+        throw std::runtime_error("Duplicate triangles are given");
+
+    std::array<PointPtr, 2> shared_points;
+    size_t index = 0;
+    for (const auto &p1 : {t1->p1, t1->p2, t1->p3})
+    {
+        for (const auto &p2 : {t2->p1, t2->p2, t2->p3})
+        {
+            if (p1 == p2)
+            {
+                shared_points.at(index) = p1;
+                if (++index == 2)
+                    return Edge(shared_points.at(0), shared_points.at(1));
+            }
+        }
+    }
+}
+
+void DelaunayTriangulation::flip(const TrianglePtr &t1, const TrianglePtr &t2)
+{
+    const auto shared_edge = this->findSharedEdge(t1, t2);
+
+    // find the unshared vertices
+    const auto unshared_p1 = this->findUnsharedVertex(t1, t2);
+    const auto unshared_p2 = this->findUnsharedVertex(t2, t1);
+
+    // create the new triangles
+    triangles_.emplace_back(std::make_shared<Triangle>(unshared_p1, shared_edge.p1, unshared_p2));
+    triangles_.emplace_back(std::make_shared<Triangle>(unshared_p1, shared_edge.p2, unshared_p2));
+
+    // remove the triangles from the lists
+    triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), *t1), triangles_.end());
+    triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), *t2), triangles_.end());
+
+
+    edge_stack_.emplace(unshared_p1, shared_edge.p1);
+    edge_stack_.emplace(unshared_p1, shared_edge.p2);
+    edge_stack_.emplace(unshared_p2, shared_edge.p1);
+    edge_stack_.emplace(unshared_p2, shared_edge.p2);
+}
+
+
+Triangle::Triangle(const PointPtr &p1, const PointPtr &p2, const PointPtr &p3)
+    : p1(p1), p2(p2), p3(p3)
+{
+    this->validate();
+    this->computeCircumcircle();
+}
+
+void Triangle::validate() const
+{
+    if (p1 == nullptr || p2 == nullptr || p3 == nullptr)
+        throw std::runtime_error("Triangle is not valid: nullptr");
+
+    if (p1 == p2 || p2 == p3 || p3 == p1)
+        throw std::runtime_error("Triangle is not valid: duplicate points");
+
+    const std::array<double, 2> vec12 = {p2->x - p1->x, p2->y - p1->y};
+    const std::array<double, 2> vec13 = {p3->x - p1->x, p3->y - p1->y};
+    auto cross = [](const std::array<double, 2> &a, const std::array<double, 2> &b) -> double
+    {
+        return a[0] * b[1] - a[1] * b[0];
+    };
+    if (cross(vec12, vec13) == 0)
+        throw std::runtime_error("Triangle is not valid: collinear points");
+}
+
+void Triangle::computeCircumcircle()
 {
     // Lambda function to compute the midpoint between two points
     auto midpoint = [](const PointPtr &a, const PointPtr &b) -> Point
@@ -128,12 +280,12 @@ void DelaunayTriangulation::computeCircumcircle(const Triangle &t, Circle &c)
         return (b->y - a->y) / (b->x - a->x);
     };
     // midpoints for two edges of the triangle
-    const Point m12 = midpoint(t.p1, t.p2);
-    const Point m13 = midpoint(t.p1, t.p3);
+    const Point m12 = midpoint(p1, p2);
+    const Point m13 = midpoint(p1, p3);
 
     // slopes for two edges of the triangle
-    const double slope12 = slope(t.p1, t.p2);
-    const double slope13 = slope(t.p1, t.p3);
+    const double slope12 = slope(p1, p2);
+    const double slope13 = slope(p1, p3);
 
     // the slopes of the perpendicular bisectors
     double perpSlope12 = (slope12 == 0) ? INFINITY : (-1.0 / slope12);
@@ -143,8 +295,19 @@ void DelaunayTriangulation::computeCircumcircle(const Triangle &t, Circle &c)
     double x = (m13.y - m12.y - perpSlope13 * m13.x + perpSlope12 * m12.x) / (perpSlope12 - perpSlope13);
     double y = m12.y + perpSlope12 * (x - m12.x);
 
-    c.center = Point{x, y};
-    c.radius = std::sqrt(std::pow(t.p1->x - x, 2) + std::pow(t.p1->y - y, 2));
+    circumcircle.center = Point{x, y};
+    circumcircle.radius = std::sqrt(std::pow(p1->x - x, 2) + std::pow(p1->y - y, 2));
+}
+
+bool Triangle::includePoint(const PointPtr &p) const
+{
+    return std::pow(p->x - circumcircle.center.x, 2) + std::pow(p->y - circumcircle.center.y, 2) <=
+           std::pow(circumcircle.radius, 2);
+}
+
+bool Triangle::includeEdge(const PointPtr &p1, const PointPtr &p2) const
+{
+    return this->includePoint(p1) && this->includePoint(p2);
 }
 
 } // namespace delaunay_Triangulation

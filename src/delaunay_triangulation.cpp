@@ -7,6 +7,18 @@
 namespace delaunay_triangulation
 {
 
+std::ostream& operator<<(std::ostream &os, const Point &p)
+{
+    os << "(x, y) = (" << p.x << ", " << p.y << ")";
+    return os;
+}
+
+std::ostream& operator<<(std::ostream &os, const PointPtr &p)
+{
+    os << *p;
+    return os;
+}
+
 DelaunayTriangulation::DelaunayTriangulation()
     : img_(cv::Mat(image_height_, image_width_, CV_8UC3, background_color_))
 {
@@ -15,13 +27,6 @@ DelaunayTriangulation::DelaunayTriangulation()
     this->addPoint(150, 230);
     this->addPoint(400, 205);
     this->addPoint(200, 330);
-
-    // edges_.emplace_back(points_[0], points_[1]);
-    // edges_.emplace_back(points_[2], points_[3]);
-    // edges_.emplace_back(points_[4], points_[0]);
-
-    triangles_.emplace_back(points_[0], points_[1], points_[2]);
-    triangles_.emplace_back(points_[0], points_[2], points_[4]);
 }
 
 void DelaunayTriangulation::addPoint(double x, double y)
@@ -40,58 +45,83 @@ void DelaunayTriangulation::createDelaunayTriangules()
 
     for (const auto &p : points_)
     {
-        for (const auto &t : triangles_)
+        std::cout << "Add new point: " << p << std::endl;
+
+        auto find_triangle_containing_point = [this](const PointPtr &p) -> Triangle
         {
-            if (t.includePoint(p))
+            for (const auto &t : triangles_)
             {
-                // remove the triangle from the list
-                triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t), triangles_.end());
-
-                // add the new triangles to the list
-                triangles_.emplace_back(t.p1, t.p2, p);
-                triangles_.emplace_back(t.p2, t.p3, p);
-                triangles_.emplace_back(t.p3, t.p1, p);
-
-                // add the edges of the triangle to the edge list
-                edge_stack_.emplace(t.p1, t.p2);
-                edge_stack_.emplace(t.p2, t.p3);
-                edge_stack_.emplace(t.p3, t.p1);
-
-                while (!edge_stack_.empty())
-                {
-                    const Edge e = edge_stack_.top();
-                    edge_stack_.pop();
-
-                    // find the triangles that include this edge
-                    std::vector<TrianglePtr> edge_triangles;
-                    for (const auto &t : triangles_)
-                    {
-                        if (t.includeEdge(e.p1, e.p2))
-                        {
-                            edge_triangles.emplace_back(std::make_shared<Triangle>(t));
-                            if (edge_triangles.size() == 2)
-                                break;
-                        }
-                    }
-
-                    if (edge_triangles.size() == 2)
-                    {
-                        auto &t1 = edge_triangles.at(0);
-                        auto &t2 = edge_triangles.at(1);
-                        if (t1 == t2)
-                            throw std::runtime_error("Duplicate triangle found");
-
-                        const PointPtr unshared_p = this->findUnsharedVertex(t1, t2);
-                        if (t1->includePoint(unshared_p))
-                        {
-                            this->flip(t1, t2);
-                        }
-                    }
-
-
-                }
-
+                if (t.includePoint(p))
+                    return t;
             }
+            throw std::runtime_error("No triangle found that includes the point");
+        };
+
+        const auto t = find_triangle_containing_point(p);
+
+
+
+        triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t),
+                            triangles_.end());
+
+        std::cout << "Adding new triangles" << std::endl;
+        std::cout << "p1: " << t.p1 << std::endl;
+        std::cout << "p2: " << t.p2 << std::endl;
+        std::cout << "p3: " << t.p3 << std::endl;
+        std::cout << "p: " << p << std::endl;
+
+        triangles_.emplace_back(t.p1, t.p2, p);
+        std::cout << "p1: " << t.p1 << std::endl;
+        std::cout << "p2: " << t.p2 << std::endl;
+        std::cout << "p3: " << t.p3 << std::endl;
+        std::cout << "p: " << p << std::endl;
+        triangles_.emplace_back(t.p2, t.p3, p);
+        std::cout << "p1: " << t.p1 << std::endl;
+        std::cout << "p2: " << t.p2 << std::endl;
+        std::cout << "p3: " << t.p3 << std::endl;
+        std::cout << "p: " << p << std::endl;
+        triangles_.emplace_back(t.p3, t.p1, p);
+
+
+        std::cout << "Adding edges to stack" << std::endl;
+        // add the edges of the triangle to the edge list
+        edge_stack_.emplace(t.p1, t.p2);
+        edge_stack_.emplace(t.p2, t.p3);
+        edge_stack_.emplace(t.p3, t.p1);
+
+        while (!edge_stack_.empty())
+        {
+            const Edge e = edge_stack_.top();
+            edge_stack_.pop();
+
+            // find the triangles that include this edge
+            std::vector<TrianglePtr> edge_triangles;
+            for (const auto &t : triangles_)
+            {
+                if (t.includeEdge(e.p1, e.p2))
+                {
+                    std::cout << "Found triangle that includes edge" << std::endl;
+                    edge_triangles.emplace_back(std::make_shared<Triangle>(t));
+                    if (edge_triangles.size() == 2)
+                        break;
+                }
+            }
+
+            if (edge_triangles.size() == 2)
+            {
+                auto &t1 = edge_triangles.at(0);
+                auto &t2 = edge_triangles.at(1);
+                if (t1 == t2)
+                    throw std::runtime_error("Duplicate triangle found");
+
+                const PointPtr unshared_p = this->findUnsharedVertex(t1, t2);
+                if (t1->includePoint(unshared_p))
+                {
+                    this->flip(t1, t2);
+                }
+            }
+
+
         }
     }
 
@@ -100,8 +130,9 @@ void DelaunayTriangulation::createDelaunayTriangules()
 
 void DelaunayTriangulation::draw()
 {
+    std::cout << triangles_.size() << std::endl;
     // this->drawEdges();
-    this->drawCircumcircles();
+    // this->drawCircumcircles();
     this->drawPoints();
     this->drawTriangles();
 
@@ -173,9 +204,12 @@ void DelaunayTriangulation::drawCircumcircles()
 
 void DelaunayTriangulation::addBoundingTriangle()
 {
-    const PointPtr p1 = std::make_shared<Point>(-1e9, -1e9);
-    const PointPtr p2 = std::make_shared<Point>(1e9, -1e9);
-    const PointPtr p3 = std::make_shared<Point>(0, 1e9);
+    const PointPtr p1 = std::make_shared<Point>(-1e5 + 1, -1e5);
+    const PointPtr p2 = std::make_shared<Point>(1e5, -1e5 + 1);
+    const PointPtr p3 = std::make_shared<Point>(10, 1e5 + 10);
+    points_.push_back(p1);
+    points_.push_back(p2);
+    points_.push_back(p3);
     triangles_.emplace_back(p1, p2, p3);
 }
 
@@ -210,6 +244,7 @@ Edge DelaunayTriangulation::findSharedEdge(const TrianglePtr &t1,
             }
         }
     }
+    throw std::runtime_error("No shared edge found");
 }
 
 void DelaunayTriangulation::flip(const TrianglePtr &t1, const TrianglePtr &t2)
@@ -221,8 +256,9 @@ void DelaunayTriangulation::flip(const TrianglePtr &t1, const TrianglePtr &t2)
     const auto unshared_p2 = this->findUnsharedVertex(t2, t1);
 
     // create the new triangles
-    triangles_.emplace_back(std::make_shared<Triangle>(unshared_p1, shared_edge.p1, unshared_p2));
-    triangles_.emplace_back(std::make_shared<Triangle>(unshared_p1, shared_edge.p2, unshared_p2));
+    std::cout << "Creating flipped triangles" << std::endl;
+    triangles_.push_back(Triangle(unshared_p1, shared_edge.p1, unshared_p2));
+    triangles_.push_back(Triangle(unshared_p1, shared_edge.p2, unshared_p2));
 
     // remove the triangles from the lists
     triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), *t1), triangles_.end());
@@ -245,11 +281,15 @@ Triangle::Triangle(const PointPtr &p1, const PointPtr &p2, const PointPtr &p3)
 
 void Triangle::validate() const
 {
+    std::cout << "Validating triangle: " << *this << std::endl;
+
     if (p1 == nullptr || p2 == nullptr || p3 == nullptr)
         throw std::runtime_error("Triangle is not valid: nullptr");
 
     if (p1 == p2 || p2 == p3 || p3 == p1)
+    {
         throw std::runtime_error("Triangle is not valid: duplicate points");
+    }
 
     const std::array<double, 2> vec12 = {p2->x - p1->x, p2->y - p1->y};
     const std::array<double, 2> vec13 = {p3->x - p1->x, p3->y - p1->y};
@@ -288,12 +328,12 @@ void Triangle::computeCircumcircle()
     const double slope13 = slope(p1, p3);
 
     // the slopes of the perpendicular bisectors
-    double perpSlope12 = (slope12 == 0) ? INFINITY : (-1.0 / slope12);
-    double perpSlope13 = (slope13 == 0) ? INFINITY : (-1.0 / slope13);
+    const double perpSlope12 = (slope12 == 0) ? INFINITY : (-1.0 / slope12);
+    const double perpSlope13 = (slope13 == 0) ? INFINITY : (-1.0 / slope13);
 
     // the intersection of the two perpendicular bisectors
-    double x = (m13.y - m12.y - perpSlope13 * m13.x + perpSlope12 * m12.x) / (perpSlope12 - perpSlope13);
-    double y = m12.y + perpSlope12 * (x - m12.x);
+    const double x = (m13.y - m12.y - perpSlope13 * m13.x + perpSlope12 * m12.x) / (perpSlope12 - perpSlope13);
+    const double y = m12.y + perpSlope12 * (x - m12.x);
 
     circumcircle.center = Point{x, y};
     circumcircle.radius = std::sqrt(std::pow(p1->x - x, 2) + std::pow(p1->y - y, 2));
@@ -301,13 +341,43 @@ void Triangle::computeCircumcircle()
 
 bool Triangle::includePoint(const PointPtr &p) const
 {
-    return std::pow(p->x - circumcircle.center.x, 2) + std::pow(p->y - circumcircle.center.y, 2) <=
+    return std::pow(p->x - circumcircle.center.x, 2) + std::pow(p->y - circumcircle.center.y, 2) <
            std::pow(circumcircle.radius, 2);
 }
 
 bool Triangle::includeEdge(const PointPtr &p1, const PointPtr &p2) const
 {
     return this->includePoint(p1) && this->includePoint(p2);
+}
+
+bool Triangle::operator==(const Triangle& other) const
+{
+    return (p1 == other.p1 && p2 == other.p2 && p3 == other.p3) ||
+            (p1 == other.p1 && p2 == other.p3 && p3 == other.p2) ||
+            (p1 == other.p2 && p2 == other.p1 && p3 == other.p3) ||
+            (p1 == other.p2 && p2 == other.p3 && p3 == other.p1) ||
+            (p1 == other.p3 && p2 == other.p1 && p3 == other.p2) ||
+            (p1 == other.p3 && p2 == other.p2 && p3 == other.p1);
+}
+
+std::ostream& operator<<(std::ostream &os, const Triangle &t)
+{
+    os << "\n- p1: " << t.p1 << "\n- p2: " << t.p2 << "\n- p3: " << t.p3;
+    return os;
+}
+
+bool operator==(const TrianglePtr& lhs, const TrianglePtr& rhs)
+{
+    if(!lhs || !rhs)
+        return lhs == rhs;
+    return *lhs == *rhs;
+}
+
+bool operator==(const PointPtr& lhs, const PointPtr& rhs)
+{
+    if(!lhs || !rhs)
+        return lhs == rhs;
+    return *lhs == *rhs;
 }
 
 } // namespace delaunay_Triangulation

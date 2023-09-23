@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <memory>
 #include <stack>
+#include <iostream>
 
 namespace delaunay_triangulation
 {
@@ -19,13 +20,11 @@ struct Point
         return (x == other.x && y == other.y);
     }
 };
+std::ostream& operator<<(std::ostream &os, const Point &p);
+
 using PointPtr = std::shared_ptr<Point>;
-bool operator==(const PointPtr& lhs, const PointPtr& rhs)
-{
-    if(!lhs || !rhs)
-        return lhs == rhs;
-    return *lhs == *rhs;
-}
+bool operator==(const PointPtr& lhs, const PointPtr& rhs);
+std::ostream& operator<<(std::ostream &os, const PointPtr &p);
 
 struct Edge
 {
@@ -52,15 +51,8 @@ public:
     [[nodiscard]] bool includePoint(const PointPtr &p) const;
     [[nodiscard]] bool includeEdge(const PointPtr &p1, const PointPtr &p2) const;
 
-    bool operator==(const Triangle& other) const
-    {
-        return (p1 == other.p1 && p2 == other.p2 && p3 == other.p3) ||
-               (p1 == other.p1 && p2 == other.p3 && p3 == other.p2) ||
-               (p1 == other.p2 && p2 == other.p1 && p3 == other.p3) ||
-               (p1 == other.p2 && p2 == other.p3 && p3 == other.p1) ||
-               (p1 == other.p3 && p2 == other.p1 && p3 == other.p2) ||
-               (p1 == other.p3 && p2 == other.p2 && p3 == other.p1);
-    }
+    bool operator==(const Triangle& other) const;
+    friend std::ostream& operator<<(std::ostream &os, const Triangle &t);
 
     PointPtr p1;
     PointPtr p2;
@@ -71,12 +63,7 @@ private:
     void validate() const;
 };
 using TrianglePtr = std::shared_ptr<Triangle>;
-bool operator==(const TrianglePtr& lhs, const TrianglePtr& rhs)
-{
-    if(!lhs || !rhs)
-        return lhs == rhs;
-    return *lhs == *rhs;
-}
+bool operator==(const TrianglePtr& lhs, const TrianglePtr& rhs);
 
 class DelaunayTriangulation
 {

@@ -7,8 +7,11 @@ using namespace delaunay_triangulation;
 
 int main()
 {
-    DelaunayTriangulation Triangulation;
-    Triangulation.draw();
+    DelaunayTriangulation triangulation;
+    triangulation.createDelaunayTriangules();
+
+
+    triangulation.draw();
 
     return 0;
 }

@@ -51,7 +51,6 @@ public:
     [[nodiscard]] bool includePoint(const PointPtr &p) const;
     [[nodiscard]] bool includeEdge(const PointPtr &p1, const PointPtr &p2) const;
 
-    bool operator==(const Triangle& other) const;
     friend std::ostream& operator<<(std::ostream &os, const Triangle &t);
 
     PointPtr p1;
@@ -63,7 +62,8 @@ private:
     void validate() const;
 };
 using TrianglePtr = std::shared_ptr<Triangle>;
-bool operator==(const TrianglePtr& lhs, const TrianglePtr& rhs);
+bool operator==(const Triangle &lhs, const Triangle &rhs);
+bool operator==(const TrianglePtr &lhs, const TrianglePtr &rhs);
 
 class DelaunayTriangulation
 {
@@ -72,7 +72,7 @@ public:
     void addPoint(double x, double y);
     void addPoint(const PointPtr &p);
     void createDelaunayTriangules();
-    void draw();
+    void draw() const;
 
 private:
     const cv::Scalar background_color_ = cv::Scalar(255,255,255);
@@ -82,7 +82,7 @@ private:
 
     const cv::Scalar circumcircle_color_ = cv::Scalar(100,100,100);
     const double circumcircle_thickness_ = 1.;
-    std::vector<Triangle> triangles_;
+    std::vector<TrianglePtr> triangles_;
 
     std::vector<PointPtr> points_;
     const double point_radius_ = 5.;
@@ -94,14 +94,15 @@ private:
 
     cv::Mat img_;
 
-    void drawPoint(const PointPtr &p);
-    void drawPoints();
+    void drawPoint(const PointPtr &p) const;
+    void drawPoints() const;
     // void drawEdge(const Edge &e);
     // void drawEdges();
-    void drawTriangle(const Triangle &t);
-    void drawTriangles();
-    void drawCircumcircle(const Triangle &t);
-    void drawCircumcircles();
+    void drawTriangle(const TrianglePtr &t) const;
+    void drawTriangles() const;
+    void drawCircumcircle(const TrianglePtr &t) const;
+    void drawCircumcircles() const;
+
     void addBoundingTriangle();
     PointPtr findUnsharedVertex(const TrianglePtr &t1, const TrianglePtr &t2) const;
     Edge findSharedEdge(const TrianglePtr &t1, const TrianglePtr &t2) const;

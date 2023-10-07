@@ -1,5 +1,5 @@
-#ifndef DELAUNAY_Triangulation__DELAUNAY_Triangulation_H
-#define DELAUNAY_Triangulation__DELAUNAY_Triangulation_H
+#ifndef DELAUNAY_TRIANGULATION__GEOMETRY_PRIMITIVES_H
+#define DELAUNAY_TRIANGULATION__GEOMETRY_PRIMITIVES_H
 
 #include <opencv2/opencv.hpp>
 #include <memory>

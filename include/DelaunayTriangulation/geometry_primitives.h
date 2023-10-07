@@ -30,6 +30,16 @@ using PointPtr = std::shared_ptr<Point>;
 bool operator==(const PointPtr &lhs, const PointPtr &rhs);
 std::ostream& operator<<(std::ostream &os, const PointPtr &p);
 
+class Edge
+{
+public:
+    Edge(const PointPtr &p1, const PointPtr &p2) : p1(p1), p2(p2) {}
+    void draw(cv::Mat &img) const;
+
+    const PointPtr p1;
+    const PointPtr p2;
+};
+
 class Circle
 {
 public:

@@ -14,7 +14,8 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME}
-  src/main.cpp
+  src/geometry_primitives.cpp
+  src/delaunay_triangulation.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -23,9 +24,17 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_executable(delaunay_triangulation
-  src/delaunay_triangulation.cpp
+  src/main.cpp
 )
 
 target_link_libraries(delaunay_triangulation
+  ${PROJECT_NAME}
+)
+
+add_executable(test_geometry_primitives
+  test/test_geometry_primitives.cpp
+)
+
+target_link_libraries(test_geometry_primitives
   ${PROJECT_NAME}
 )

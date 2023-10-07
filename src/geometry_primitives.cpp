@@ -107,7 +107,6 @@ void Triangle::computeCircumcircle()
 
     circumcircle.center.x = center_x;
     circumcircle.center.y = center_y;
-    std::cout << "center: " << circumcircle.center << std::endl;
     circumcircle.radius = std::hypot(p1->x - center_x, p1->y - center_y);
 }
 

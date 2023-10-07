@@ -2,7 +2,7 @@
 #include <array>
 #include <opencv2/opencv.hpp>
 
-#include "DelaunayTriangulation/delaunay_triangulation.h"
+#include "DelaunayTriangulation/geometry_primitives.h"
 
 namespace delaunay_triangulation
 {
@@ -28,6 +28,20 @@ std::ostream& operator<<(std::ostream &os, const PointPtr &p)
 {
     os << *p;
     return os;
+}
+
+void Point::draw(cv::Mat &img) const
+{
+    cv::circle(img, cv::Point(x, y), point_radius_, point_color_, -1, cv::LINE_AA);
+}
+
+void Circle::draw(cv::Mat &img, bool draw_center) const
+{
+    cv::circle(img, cv::Point(center.x, center.y), radius, circle_color_, 1, cv::LINE_AA);
+    if (draw_center)
+    {
+        cv::circle(img, cv::Point(center.x, center.y), 2, center_color_, -1, cv::LINE_AA);
+    }
 }
 
 Triangle::Triangle(const PointPtr &p1, const PointPtr &p2, const PointPtr &p3)
@@ -64,46 +78,53 @@ void Triangle::computeCircumcircle()
         return Point{(a->x + b->x) / 2.0, (a->y + b->y) / 2.0};
     };
 
-    auto slope = [](const PointPtr &a, const PointPtr &b) -> std::optional<double>
+    const Point m12 = midpoint(p1, p2);
+    const Point m13 = midpoint(p1, p3);
+
+    double center_x, center_y;
+    if (p1->y == p2->y)
     {
-        if (b->x == a->x)
-            return std::nullopt; // vertical
-        return (b->y - a->y) / (b->x - a->x);
-    };
-
-    auto compute_perpendicular_bisector = [&](const Point &midpoint,
-                                              const std::optional<double> &slope)
-                                          -> std::function<double(double)>
+        center_x = m12.x;
+        const double perpendicular_slope13 = -(p3->x - p1->x) / (p3->y - p1->y);
+        center_y = m13.y + perpendicular_slope13 * (center_x - m13.x);
+    }
+    else if(p1->y == p3->y)
     {
-        if (slope) // not vertical
-            return [midpoint, slope = *slope](double x)
-            {
-                return -(1.0 / slope) * (x - midpoint.x) + midpoint.y;
-            };
-        return [midpoint](double) { return midpoint.y; };
-    };
-
-    Point m12 = midpoint(p1, p2);
-    Point m13 = midpoint(p1, p3);
-
-    auto bisector12 = compute_perpendicular_bisector(m12, slope(p1, p2));
-    auto bisector13 = compute_perpendicular_bisector(m13, slope(p1, p3));
-
-    double center_x;
-
-    // if both bisectors are not vertical
-    if (auto slope12 = slope(p1, p2), slope13 = slope(p1, p3); slope12 && slope13)
-    {
-        center_x = (m13.y - m12.y + (*slope12) * m12.x - (*slope13) * m13.x) / (*slope12 - *slope13);
+        center_x = m13.x;
+        const double perpendicular_slope12 = -(p2->x - p1->x) / (p2->y - p1->y);
+        center_y = m12.y + perpendicular_slope12 * (center_x - m12.x);
     }
     else
     {
-        center_x = slope12 ? m13.x : m12.x;
+        const double perpendicular_slope12 = -(p2->x - p1->x) / (p2->y - p1->y);
+        const double perpendicular_slope13 = -(p3->x - p1->x) / (p3->y - p1->y);
+        center_x = (m13.y - m12.y +
+                    perpendicular_slope12 * m12.x -
+                    perpendicular_slope13 * m13.x) /
+                    (perpendicular_slope12 - perpendicular_slope13);
+        center_y = m12.y + perpendicular_slope12 * (center_x - m12.x);
     }
-    double center_y = bisector12(center_x);
 
-    circumcircle.center = Point{center_x, center_y};
+    circumcircle.center.x = center_x;
+    circumcircle.center.y = center_y;
+    std::cout << "center: " << circumcircle.center << std::endl;
     circumcircle.radius = std::hypot(p1->x - center_x, p1->y - center_y);
+}
+
+
+void Triangle::draw(cv::Mat &img, bool draw_circumcircle) const
+{
+    cv::line(img, cv::Point(p1->x, p1->y), cv::Point(p2->x, p2->y),
+             triangle_color_, 1, cv::LINE_AA);
+    cv::line(img, cv::Point(p2->x, p2->y), cv::Point(p3->x, p3->y),
+             triangle_color_, 1, cv::LINE_AA);
+    cv::line(img, cv::Point(p3->x, p3->y), cv::Point(p1->x, p1->y),
+             triangle_color_, 1, cv::LINE_AA);
+
+    if (draw_circumcircle)
+    {
+        circumcircle.draw(img, true);
+    }
 }
 
 bool Triangle::includePoint(const PointPtr &p) const

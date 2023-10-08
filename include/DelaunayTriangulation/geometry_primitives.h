@@ -19,8 +19,8 @@ public:
     double y;
 
 private:
-    const int point_radius_ = 2;
-    const cv::Scalar point_color_ = cv::Scalar(200, 0, 0);
+    int point_radius_ = 2;
+    cv::Scalar point_color_ = cv::Scalar(200, 0, 0);
 };
 
 bool operator==(const Point &lhs, const Point &rhs);
@@ -36,8 +36,8 @@ public:
     Edge(const PointPtr &p1, const PointPtr &p2) : p1(p1), p2(p2) {}
     void draw(cv::Mat &img) const;
 
-    const PointPtr p1;
-    const PointPtr p2;
+    PointPtr p1;
+    PointPtr p2;
 };
 
 class Circle
@@ -52,8 +52,8 @@ public:
     double radius = 0.0;
 
 private:
-    const cv::Scalar circle_color_ = cv::Scalar(0, 0, 200);
-    const cv::Scalar center_color_ = cv::Scalar(0, 0, 200);
+    cv::Scalar circle_color_ = cv::Scalar(0, 0, 200);
+    cv::Scalar center_color_ = cv::Scalar(0, 0, 200);
 };
 
 class Triangle
@@ -66,19 +66,20 @@ public:
     void computeCircumcircle();
     void draw(cv::Mat &img, bool draw_circumcircle=false) const;
     [[nodiscard]] bool includePoint(const PointPtr &p) const;
-    [[nodiscard]] bool includeEdge(const PointPtr &p1, const PointPtr &p2) const;
+    [[nodiscard]] bool hasEdge(const Edge &e) const;
+    [[nodiscard]] bool hasPoint(const PointPtr &p) const;
 
     friend std::ostream& operator<<(std::ostream &os, const Triangle &t);
 
-    const PointPtr p1;
-    const PointPtr p2;
-    const PointPtr p3;
+    PointPtr p1;
+    PointPtr p2;
+    PointPtr p3;
     Circle circumcircle;
 
 private:
     void validate() const;
 
-    const cv::Scalar triangle_color_ = cv::Scalar(0, 0, 0);
+    cv::Scalar triangle_color_ = cv::Scalar(0, 0, 0);
 };
 bool operator==(const Triangle &lhs, const Triangle &rhs);
 

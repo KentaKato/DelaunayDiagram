@@ -132,9 +132,14 @@ bool Triangle::includePoint(const PointPtr &p) const
            std::pow(circumcircle.radius, 2.);
 }
 
-bool Triangle::includeEdge(const PointPtr &p1, const PointPtr &p2) const
+bool Triangle::hasPoint(const PointPtr &p) const
 {
-    return this->includePoint(p1) && this->includePoint(p2);
+    return (p == p1 || p == p2 || p == p3);
+}
+
+bool Triangle::hasEdge(const Edge &e) const
+{
+    return this->hasPoint(e.p1) && this->hasPoint(e.p2);
 }
 
 std::ostream& operator<<(std::ostream &os, const Triangle &t)

@@ -9,11 +9,11 @@ namespace delaunay_triangulation
 
 DelaunayTriangulation::DelaunayTriangulation()
 {
-    this->addPoint(111, 110);
-    this->addPoint(143, 110);
-    this->addPoint(115, 123);
-    this->addPoint(140, 120);
-    this->addPoint(120, 133);
+    this->addPoint(151, 150);
+    this->addPoint(293, 160);
+    this->addPoint(165, 273);
+    this->addPoint(290, 290);
+    this->addPoint(270, 263);
 }
 
 void DelaunayTriangulation::addPoint(double x, double y)
@@ -30,11 +30,8 @@ void DelaunayTriangulation::createDelaunayTriangules()
 {
     this->addBoundingTriangle();
 
-    this->draw();
     for (const auto &p : points_)
     {
-        std::cout << "Add new point: " << p << std::endl;
-
         auto find_triangle_containing_point = [this](const PointPtr &p) -> Triangle
         {
             for (const auto &t : triangles_)
@@ -45,9 +42,14 @@ void DelaunayTriangulation::createDelaunayTriangules()
             throw std::runtime_error("No triangle found that includes the point");
         };
 
+        std::cout << "Finding triangle that contains point" << std::endl;
+        this->draw();
         const auto t_contains_p = find_triangle_containing_point(p);
+
+        std::cout << "Removing triangle that contains point" << std::endl;
         triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t_contains_p),
                          triangles_.end());
+        this->draw();
 
         std::cout << "Adding new triangles" << std::endl;
         const Triangle t1 = Triangle(t_contains_p.p1, t_contains_p.p2, p);
@@ -66,6 +68,7 @@ void DelaunayTriangulation::createDelaunayTriangules()
 
         while (!edge_stack_.empty())
         {
+            std::cout << "Popping edge from stack" << std::endl;
             const Edge e = edge_stack_.top();
             edge_stack_.pop();
 
@@ -73,7 +76,7 @@ void DelaunayTriangulation::createDelaunayTriangules()
             std::vector<Triangle> edge_triangles;
             for (const auto &t : triangles_)
             {
-                if (t.includeEdge(e.p1, e.p2))
+                if (t.hasEdge(e))
                 {
                     std::cout << "Found triangle that includes edge" << std::endl;
                     edge_triangles.push_back(t);
@@ -95,7 +98,9 @@ void DelaunayTriangulation::createDelaunayTriangules()
                 const PointPtr unshared_p = this->findUnsharedVertex(et1, et2);
                 if (et1.includePoint(unshared_p))
                 {
+                    this->draw();
                     this->flip(et1, et2);
+                    this->draw();
                 }
             }
 
@@ -108,7 +113,9 @@ void DelaunayTriangulation::createDelaunayTriangules()
 
 void DelaunayTriangulation::draw()
 {
-    std::cout << "Num triangles: "<< triangles_.size() << std::endl;
+    static int draw_counter = 0;
+    std::cout << "Drawing image " << draw_counter++ << std::endl;
+
     img_ = cv::Mat(image_height_, image_width_, CV_8UC3, background_color_);
 
     this->drawPoints();
@@ -131,7 +138,7 @@ void DelaunayTriangulation::drawTriangles()
 {
     for (const auto &t : triangles_)
     {
-        t.draw(img_, true);
+        t.draw(img_, false);
     }
 }
 
@@ -142,7 +149,7 @@ void DelaunayTriangulation::addBoundingTriangle()
     // const PointPtr p3 = std::make_shared<Point>(0, 1e5);
     const PointPtr p1 = std::make_shared<Point>(0, 0);
     const PointPtr p2 = std::make_shared<Point>(image_width_, 0);
-    const PointPtr p3 = std::make_shared<Point>(0, image_height_);
+    const PointPtr p3 = std::make_shared<Point>(image_width_/2., image_height_);
     const Triangle t = Triangle(p1, p2, p3);
     points_.push_back(p1);
     points_.push_back(p2);
@@ -186,6 +193,8 @@ Edge DelaunayTriangulation::findSharedEdge(const Triangle &t1,
 
 void DelaunayTriangulation::flip(const Triangle &t1, const Triangle &t2)
 {
+    std::cout << "Flipping triangles" << std::endl;
+
     const auto shared_edge = this->findSharedEdge(t1, t2);
     const auto unshared_p1 = this->findUnsharedVertex(t1, t2);
     const auto unshared_p2 = this->findUnsharedVertex(t2, t1);

@@ -30,6 +30,10 @@ private:
 bool operator==(const Vertex &lhs, const Vertex &rhs);
 std::ostream& operator<<(std::ostream &os, const Vertex &p);
 
+Vertex operator+(const Vertex& lhs, const Vertex& rhs);
+
+Vertex operator/(const Vertex& v, double scalar);
+
 class Edge
 {
 public:

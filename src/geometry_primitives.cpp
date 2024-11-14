@@ -1,6 +1,5 @@
 #include <iostream>
 #include <array>
-#include <utility>
 #include <opencv2/opencv.hpp>
 
 #include "DelaunayTriangulation/geometry_primitives.hpp"
@@ -31,6 +30,18 @@ std::ostream& operator<<(std::ostream &os, const Vertex &p)
 {
     os << "(x, y) = (" << p.x << ", " << p.y << ")";
     return os;
+}
+
+Vertex operator+(const Vertex& lhs, const Vertex& rhs)
+{
+    return Vertex{lhs.x + rhs.x, lhs.y + rhs.y};
+}
+
+Vertex operator/(const Vertex& v, double scalar)
+{
+    if (scalar == 0)
+        throw std::invalid_argument("Division by zero");
+    return Vertex{v.x / scalar, v.y / scalar};
 }
 
 void Vertex::draw(cv::Mat &img) const

@@ -2,16 +2,13 @@
 
 #include "DelaunayTriangulation/delaunay_triangulation.hpp"
 
+#include <numeric>
+
 namespace delaunay_triangulation
 {
 
 DelaunayTriangulation::DelaunayTriangulation()
 {
-    this->addVertex(151, 150);
-    this->addVertex(293, 160);
-    this->addVertex(165, 273);
-    this->addVertex(290, 290);
-    this->addVertex(270, 263);
 }
 
 void DelaunayTriangulation::addVertex(double x, double y)
@@ -22,10 +19,23 @@ void DelaunayTriangulation::addVertex(double x, double y)
 void DelaunayTriangulation::addVertex(const Vertex &v)
 {
     vertices_.push_back(v);
+    super_triangle_vertices_.fill(Vertex{0, 0});
+}
+
+void DelaunayTriangulation::reset()
+{
+    triangles_.clear();
 }
 
 void DelaunayTriangulation::createDelaunayTriangles()
 {
+    reset();
+
+    if (vertices_.size() < 3)
+    {
+        return;
+    }
+
     this->setupSuperTriangle();
 
     for (const auto &v : vertices_)
@@ -38,55 +48,53 @@ void DelaunayTriangulation::createDelaunayTriangles()
                 if (t.contains(v))
                 {
                     containing_triangles.push_back(t);
+                    std::cout << "Triangle contains the vertex: " << t << std::endl;
                 }
             }
             return containing_triangles;
         };
 
-        // std::cout << "Finding triangle that contains vertex" << std::endl;
-        // this->draw();
         const auto containing_triangles = find_triangle_containing_vertex(v);
         if (containing_triangles.empty())
         {
             // std::cout << "No triangle contains the vertex: " << v << std::endl;
             continue;
         }
-        if (containing_triangles.size() > 2)
-        {
-            throw std::runtime_error("More than 2 triangles contain the vertex");
-        }
 
         if (containing_triangles.size() == 1)
         {
             const auto &t_contains_v = containing_triangles.at(0);
             this->erase(t_contains_v);
-            // this->draw();
             triangles_.emplace_back(t_contains_v.v1, t_contains_v.v2, v);
             triangles_.emplace_back(t_contains_v.v2, t_contains_v.v3, v);
             triangles_.emplace_back(t_contains_v.v3, t_contains_v.v1, v);
-            // this->draw();
         }
-        if (containing_triangles.size() == 2)
+        if (containing_triangles.size() > 1)
         {
-            const auto &t1 = containing_triangles.at(0);
-            const auto &t2 = containing_triangles.at(1);
-            const auto shared_vertices = this->findSharedVertices(t1, t2);
-            const auto unshared_vertices = this->findUnsharedVertices(t1, t2);
+            std::vector<Vertex> polygon_vertices;
+            this->parseUniqueVertices(containing_triangles, polygon_vertices);
+            this->sortCounterClockwise(polygon_vertices);
 
-            this->erase(t1);
-            this->erase(t2);
-
-            for (const auto &shared_v : shared_vertices)
+            std::cout << "num triangles: " << triangles_.size() << std::endl;
+            std::cout << "num containing vertices: " << containing_triangles.size() << std::endl;
+            // Delete the triangles that contain the vertex
+            for (const auto &t : containing_triangles)
             {
-                if (shared_v != v)
-                {
-                    triangles_.emplace_back(shared_v, unshared_vertices.at(0), v);
-                    triangles_.emplace_back(shared_v, unshared_vertices.at(1), v);
-                }
+                this->erase(t);
             }
+            std::cout << "num triangles: " << triangles_.size() << std::endl;
+
+            // Create new triangles in counterclockwise order
+            for (size_t i = 0, n = polygon_vertices.size(); i < n; ++i)
+            {
+                const auto &v1 = polygon_vertices.at(i);
+                const auto &v2 = polygon_vertices.at((i + 1) % polygon_vertices.size());
+                triangles_.emplace_back(v1, v2, v);
+            }
+
         }
     }
-    this->deleteSuperTriangle();
+    // this->deleteSuperTriangle();
 }
 
 
@@ -96,31 +104,26 @@ void DelaunayTriangulation::erase(const Triangle &t)
                      triangles_.end());
 }
 
-void DelaunayTriangulation::draw()
+void DelaunayTriangulation::draw(cv::Mat &img)
 {
-    img_ = cv::Mat(image_height_, image_width_, CV_8UC3, background_color_);
-
-    this->drawVertices();
-    this->drawTriangles();
-
-    cv::namedWindow("drawing", cv::WINDOW_AUTOSIZE | cv::WINDOW_FREERATIO);
-    cv::imshow("drawing", img_);
-    cv::waitKey(0);
+    this->drawVertices(img);
+    this->drawTriangles(img);
 }
 
-void DelaunayTriangulation::drawVertices()
+void DelaunayTriangulation::drawVertices(cv::Mat &img)
 {
     for (const auto &v : vertices_)
     {
-        v.draw(img_);
+        v.draw(img);
     }
 }
 
-void DelaunayTriangulation::drawTriangles()
+void DelaunayTriangulation::drawTriangles(cv::Mat &img)
 {
     for (const auto &t : triangles_)
     {
-        t.draw(img_, false);
+        // t.draw(img, true);
+        t.draw(img, false);
     }
 }
 
@@ -167,7 +170,58 @@ void DelaunayTriangulation::deleteSuperTriangle()
             }),
         triangles_.end()
     );
+    super_triangle_vertices_.fill(Vertex{0, 0});
 }
+
+void DelaunayTriangulation::parseUniqueVertices(const std::vector<Triangle> &triangles, std::vector<Vertex> &unique_vertices) const
+{
+    unique_vertices.clear();
+    for (const auto &t : triangles)
+    {
+        for (const auto &v : {t.v1, t.v2, t.v3})
+        {
+            if (std::find(
+                    unique_vertices.begin(),
+                    unique_vertices.end(),
+                    v) == unique_vertices.end())
+            {
+                unique_vertices.push_back(v);
+            }
+        }
+    }
+}
+
+void DelaunayTriangulation::sortCounterClockwise(std::vector<Vertex> &polygon_vertices) const
+{
+    const auto centroid = std::accumulate(polygon_vertices.begin(), polygon_vertices.end(), Vertex{0, 0}) / static_cast<double>(polygon_vertices.size());
+
+    // Sort the vertices in counterclockwise order
+    std::sort(
+        polygon_vertices.begin(),
+        polygon_vertices.end(),
+        [centroid](const Vertex &v1, const Vertex &v2) -> bool {
+            double dx1 = v1.x - centroid.x;
+            double dy1 = v1.y - centroid.y;
+            double dx2 = v2.x - centroid.x;
+            double dy2 = v2.y - centroid.y;
+
+            // Calculate the cross product
+            double cross = dx1 * dy2 - dy1 * dx2;
+
+            if (cross > 0)
+                return true; // v1 comes before v2
+            if (cross < 0)
+                return false; // v1 comes after v2
+
+            // TODO: Handle the case when cross product is zero properly
+            // If cross product is zero, points are colinear with the centroid
+            // In this case, sort by distance from the centroid
+            double d1 = dx1 * dx1 + dy1 * dy1;
+            double d2 = dx2 * dx2 + dy2 * dy2;
+            return d1 < d2;
+        });
+}
+
 std::vector<Vertex> DelaunayTriangulation::findSharedVertices(const Triangle &ref, const Triangle &target) const
 {
     std::vector<Vertex> shared_vertices;

@@ -1,38 +1,41 @@
 #include <iostream>
 #include <array>
+#include <utility>
 #include <opencv2/opencv.hpp>
 
-#include "DelaunayTriangulation/geometry_primitives.h"
+#include "DelaunayTriangulation/geometry_primitives.hpp"
 
 namespace delaunay_triangulation
 {
 
-bool operator==(const Point &lhs, const Point &rhs)
+Vertex& Vertex::operator=(Vertex &other)
+{
+    x = other.x;
+    y = other.y;
+    return *this;
+}
+
+Vertex& Vertex::operator=(const Vertex &other)
+{
+    x = other.x;
+    y = other.y;
+    return *this;
+}
+
+bool operator==(const Vertex &lhs, const Vertex &rhs)
 {
     return lhs.x == rhs.x && lhs.y == rhs.y;
 }
 
-bool operator==(const PointPtr &lhs, const PointPtr &rhs)
-{
-    if(!lhs || !rhs) throw std::invalid_argument("nullptr");
-    return *lhs == *rhs;
-}
-
-std::ostream& operator<<(std::ostream &os, const Point &p)
+std::ostream& operator<<(std::ostream &os, const Vertex &p)
 {
     os << "(x, y) = (" << p.x << ", " << p.y << ")";
     return os;
 }
 
-std::ostream& operator<<(std::ostream &os, const PointPtr &p)
+void Vertex::draw(cv::Mat &img) const
 {
-    os << *p;
-    return os;
-}
-
-void Point::draw(cv::Mat &img) const
-{
-    cv::circle(img, cv::Point(x, y), point_radius_, point_color_, -1, cv::LINE_AA);
+    cv::circle(img, cv::Point(x, y), radius_, color_, -1, cv::LINE_AA);
 }
 
 void Circle::draw(cv::Mat &img, bool draw_center) const
@@ -44,60 +47,76 @@ void Circle::draw(cv::Mat &img, bool draw_center) const
     }
 }
 
-Triangle::Triangle(const PointPtr &p1, const PointPtr &p2, const PointPtr &p3)
-    : p1(p1), p2(p2), p3(p3)
+Triangle::Triangle(const Vertex &_v1, const Vertex &_v2, const Vertex &_v3)
 {
+    auto sort_points_counter_clockwise = [this, &_v1, &_v2, &_v3](){
+        Vertex a = _v1;
+        Vertex b = _v2;
+        Vertex c = _v3;
+
+        // If the points are not sorted counter clockwise, swap them
+        double area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+        if (area < 0)
+        {
+            const auto tmp = b;
+            b = c;
+            c = tmp;
+        }
+
+        this->v1 = a;
+        this->v2 = b;
+        this->v3 = c;
+    };
+
+    sort_points_counter_clockwise();
     this->validate();
-    this->computeCircumcircle();
+    this->computeCircumCircle();
 }
 
 void Triangle::validate() const
 {
-    auto are_collinear = [](const PointPtr &a, const PointPtr &b, const PointPtr &c) -> bool
+    auto are_collinear = [](const Vertex &a, const Vertex &b, const Vertex &c) -> bool
     {
-        const std::array<double, 2> vec12 = {b->x - a->x, b->y - a->y};
-        const std::array<double, 2> vec13 = {c->x - a->x, c->y - a->y};
+        const std::array<double, 2> vec12 = {b.x - a.x, b.y - a.y};
+        const std::array<double, 2> vec13 = {c.x - a.x, c.y - a.y};
         const double cross = vec12.at(0) * vec13.at(1) - vec12.at(1) * vec13.at(0);
         return cross == 0;
     };
 
-    if (p1 == nullptr || p2 == nullptr || p3 == nullptr)
-        throw std::runtime_error("Triangle is not valid: nullptr");
+    if (v1 == v2 || v2 == v3 || v3 == v1)
+        throw std::runtime_error("Triangle is not valid: duplicate vertices");
 
-    if (p1 == p2 || p2 == p3 || p3 == p1)
-        throw std::runtime_error("Triangle is not valid: duplicate points");
-
-    if (are_collinear(p1, p2, p3))
-        throw std::runtime_error("Triangle is not valid: collinear points");
+    if (are_collinear(v1, v2, v3))
+        throw std::runtime_error("Triangle is not valid: collinear vertices");
 }
 
-void Triangle::computeCircumcircle()
+void Triangle::computeCircumCircle()
 {
-    auto midpoint = [](const PointPtr &a, const PointPtr &b) -> Point
+    auto midpoint = [](const Vertex &a, const Vertex &b) -> Vertex
     {
-        return Point{(a->x + b->x) / 2.0, (a->y + b->y) / 2.0};
+        return Vertex{(a.x + b.x) / 2.0, (a.y + b.y) / 2.0};
     };
 
-    const Point m12 = midpoint(p1, p2);
-    const Point m13 = midpoint(p1, p3);
+    const Vertex m12 = midpoint(v1, v2);
+    const Vertex m13 = midpoint(v1, v3);
 
     double center_x, center_y;
-    if (p1->y == p2->y)
+    if (v1.y == v2.y)
     {
         center_x = m12.x;
-        const double perpendicular_slope13 = -(p3->x - p1->x) / (p3->y - p1->y);
+        const double perpendicular_slope13 = -(v3.x - v1.x) / (v3.y - v1.y);
         center_y = m13.y + perpendicular_slope13 * (center_x - m13.x);
     }
-    else if(p1->y == p3->y)
+    else if(v1.y == v3.y)
     {
         center_x = m13.x;
-        const double perpendicular_slope12 = -(p2->x - p1->x) / (p2->y - p1->y);
+        const double perpendicular_slope12 = -(v2.x - v1.x) / (v2.y - v1.y);
         center_y = m12.y + perpendicular_slope12 * (center_x - m12.x);
     }
     else
     {
-        const double perpendicular_slope12 = -(p2->x - p1->x) / (p2->y - p1->y);
-        const double perpendicular_slope13 = -(p3->x - p1->x) / (p3->y - p1->y);
+        const double perpendicular_slope12 = -(v2.x - v1.x) / (v2.y - v1.y);
+        const double perpendicular_slope13 = -(v3.x - v1.x) / (v3.y - v1.y);
         center_x = (m13.y - m12.y +
                     perpendicular_slope12 * m12.x -
                     perpendicular_slope13 * m13.x) /
@@ -105,46 +124,57 @@ void Triangle::computeCircumcircle()
         center_y = m12.y + perpendicular_slope12 * (center_x - m12.x);
     }
 
-    circumcircle.center.x = center_x;
-    circumcircle.center.y = center_y;
-    circumcircle.radius = std::hypot(p1->x - center_x, p1->y - center_y);
+    circum_circle.center.x = center_x;
+    circum_circle.center.y = center_y;
+    circum_circle.radius = std::hypot(v1.x - center_x, v1.y - center_y);
 }
 
 
-void Triangle::draw(cv::Mat &img, bool draw_circumcircle) const
+void Triangle::draw(cv::Mat &img, bool draw_circum_circle) const
 {
-    cv::line(img, cv::Point(p1->x, p1->y), cv::Point(p2->x, p2->y),
+    cv::line(img, cv::Point(v1.x, v1.y), cv::Point(v2.x, v2.y),
              triangle_color_, 1, cv::LINE_AA);
-    cv::line(img, cv::Point(p2->x, p2->y), cv::Point(p3->x, p3->y),
+    cv::line(img, cv::Point(v2.x, v2.y), cv::Point(v3.x, v3.y),
              triangle_color_, 1, cv::LINE_AA);
-    cv::line(img, cv::Point(p3->x, p3->y), cv::Point(p1->x, p1->y),
+    cv::line(img, cv::Point(v3.x, v3.y), cv::Point(v1.x, v1.y),
              triangle_color_, 1, cv::LINE_AA);
 
-    if (draw_circumcircle)
+    if (draw_circum_circle)
     {
-        circumcircle.draw(img, true);
+        circum_circle.draw(img, true);
     }
 }
 
-bool Triangle::includePoint(const PointPtr &p) const
+bool Triangle::contains(const Vertex &v) const
 {
-    return std::pow(p->x - circumcircle.center.x, 2.) + std::pow(p->y - circumcircle.center.y, 2.) <
-           std::pow(circumcircle.radius, 2.);
+    double ax = v1.x - v.x;
+    double ay = v1.y - v.y;
+    double bx = v2.x - v.x;
+    double by = v2.y - v.y;
+    double cx = v3.x - v.x;
+    double cy = v3.y - v.y;
+
+    double det = (ax * ax + ay * ay) * (bx * cy - cx * by) -
+                 (bx * bx + by * by) * (ax * cy - cx * ay) +
+                 (cx * cx + cy * cy) * (ax * by - bx * ay);
+
+    // In the triangle is counterclockwise
+    return det > 0;
 }
 
-bool Triangle::hasPoint(const PointPtr &p) const
+bool Triangle::has(const Vertex &v) const
 {
-    return (p == p1 || p == p2 || p == p3);
+    return (v == v1 || v == v2 || v == v3);
 }
 
-bool Triangle::hasEdge(const Edge &e) const
+bool Triangle::has(const Edge &e) const
 {
-    return this->hasPoint(e.p1) && this->hasPoint(e.p2);
+    return this->has(e.v1) && this->has(e.v2);
 }
 
 std::ostream& operator<<(std::ostream &os, const Triangle &t)
 {
-    os << "\n- p1: " << t.p1 << "\n- p2: " << t.p2 << "\n- p3: " << t.p3;
+    os << "\n- v1: " << t.v1 << "\n- v2: " << t.v2 << "\n- v3: " << t.v3;
     return os;
 }
 
@@ -156,12 +186,12 @@ std::ostream& operator<<(std::ostream &os, const TrianglePtr &t)
 
 bool operator==(const Triangle &lhs, const Triangle &rhs)
 {
-    return (lhs.p1 == rhs.p1 && lhs.p2 == rhs.p2 && lhs.p3 == rhs.p3) ||
-           (lhs.p1 == rhs.p1 && lhs.p2 == rhs.p3 && lhs.p3 == rhs.p2) ||
-           (lhs.p1 == rhs.p2 && lhs.p2 == rhs.p1 && lhs.p3 == rhs.p3) ||
-           (lhs.p1 == rhs.p2 && lhs.p2 == rhs.p3 && lhs.p3 == rhs.p1) ||
-           (lhs.p1 == rhs.p3 && lhs.p2 == rhs.p1 && lhs.p3 == rhs.p2) ||
-           (lhs.p1 == rhs.p3 && lhs.p2 == rhs.p2 && lhs.p3 == rhs.p1);
+    return (lhs.v1 == rhs.v1 && lhs.v2 == rhs.v2 && lhs.v3 == rhs.v3) ||
+           (lhs.v1 == rhs.v1 && lhs.v2 == rhs.v3 && lhs.v3 == rhs.v2) ||
+           (lhs.v1 == rhs.v2 && lhs.v2 == rhs.v1 && lhs.v3 == rhs.v3) ||
+           (lhs.v1 == rhs.v2 && lhs.v2 == rhs.v3 && lhs.v3 == rhs.v1) ||
+           (lhs.v1 == rhs.v3 && lhs.v2 == rhs.v1 && lhs.v3 == rhs.v2) ||
+           (lhs.v1 == rhs.v3 && lhs.v2 == rhs.v2 && lhs.v3 == rhs.v1);
 }
 
 bool operator==(const TrianglePtr &lhs, const TrianglePtr &rhs)

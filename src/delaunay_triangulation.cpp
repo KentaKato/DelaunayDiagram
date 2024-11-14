@@ -1,124 +1,106 @@
-#include <iostream>
-#include <array>
 #include <opencv2/opencv.hpp>
 
-#include "DelaunayTriangulation/delaunay_triangulation.h"
+#include "DelaunayTriangulation/delaunay_triangulation.hpp"
 
 namespace delaunay_triangulation
 {
 
 DelaunayTriangulation::DelaunayTriangulation()
 {
-    this->addPoint(151, 150);
-    this->addPoint(293, 160);
-    this->addPoint(165, 273);
-    this->addPoint(290, 290);
-    this->addPoint(270, 263);
+    this->addVertex(151, 150);
+    this->addVertex(293, 160);
+    this->addVertex(165, 273);
+    this->addVertex(290, 290);
+    this->addVertex(270, 263);
 }
 
-void DelaunayTriangulation::addPoint(double x, double y)
+void DelaunayTriangulation::addVertex(double x, double y)
 {
-    points_.push_back(std::make_shared<Point>(x, y));
+    vertices_.emplace_back(x, y);
 }
 
-void DelaunayTriangulation::addPoint(const PointPtr &p)
+void DelaunayTriangulation::addVertex(const Vertex &v)
 {
-    points_.push_back(p);
+    vertices_.push_back(v);
 }
 
-void DelaunayTriangulation::createDelaunayTriangules()
+void DelaunayTriangulation::createDelaunayTriangles()
 {
-    this->addBoundingTriangle();
+    this->setupSuperTriangle();
 
-    for (const auto &p : points_)
+    for (const auto &v : vertices_)
     {
-        auto find_triangle_containing_point = [this](const PointPtr &p) -> Triangle
+        auto find_triangle_containing_vertex = [this](const Vertex &v) -> std::vector<Triangle>
         {
+            std::vector<Triangle> containing_triangles;
             for (const auto &t : triangles_)
             {
-                if (t.includePoint(p))
-                    return t;
+                if (t.contains(v))
+                {
+                    containing_triangles.push_back(t);
+                }
             }
-            throw std::runtime_error("No triangle found that includes the point");
+            return containing_triangles;
         };
 
-        std::cout << "Finding triangle that contains point" << std::endl;
-        this->draw();
-        const auto t_contains_p = find_triangle_containing_point(p);
-
-        std::cout << "Removing triangle that contains point" << std::endl;
-        triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t_contains_p),
-                         triangles_.end());
-        this->draw();
-
-        std::cout << "Adding new triangles" << std::endl;
-        const Triangle t1 = Triangle(t_contains_p.p1, t_contains_p.p2, p);
-        triangles_.push_back(t1);
-        const Triangle t2 = Triangle(t_contains_p.p2, t_contains_p.p3, p);
-        triangles_.push_back(t2);
-        const Triangle t3 = Triangle(t_contains_p.p3, t_contains_p.p1, p);
-        triangles_.push_back(t3);
-        this->draw();
-
-        std::cout << "Adding edges to stack" << std::endl;
-        // add the edges of the triangle to the edge list
-        edge_stack_.emplace(t_contains_p.p1, t_contains_p.p2);
-        edge_stack_.emplace(t_contains_p.p2, t_contains_p.p3);
-        edge_stack_.emplace(t_contains_p.p3, t_contains_p.p1);
-
-        while (!edge_stack_.empty())
+        // std::cout << "Finding triangle that contains vertex" << std::endl;
+        // this->draw();
+        const auto containing_triangles = find_triangle_containing_vertex(v);
+        if (containing_triangles.empty())
         {
-            std::cout << "Popping edge from stack" << std::endl;
-            const Edge e = edge_stack_.top();
-            edge_stack_.pop();
+            // std::cout << "No triangle contains the vertex: " << v << std::endl;
+            continue;
+        }
+        if (containing_triangles.size() > 2)
+        {
+            throw std::runtime_error("More than 2 triangles contain the vertex");
+        }
 
-            // find the triangles that include this edge
-            std::vector<Triangle> edge_triangles;
-            for (const auto &t : triangles_)
+        if (containing_triangles.size() == 1)
+        {
+            const auto &t_contains_v = containing_triangles.at(0);
+            this->erase(t_contains_v);
+            // this->draw();
+            triangles_.emplace_back(t_contains_v.v1, t_contains_v.v2, v);
+            triangles_.emplace_back(t_contains_v.v2, t_contains_v.v3, v);
+            triangles_.emplace_back(t_contains_v.v3, t_contains_v.v1, v);
+            // this->draw();
+        }
+        if (containing_triangles.size() == 2)
+        {
+            const auto &t1 = containing_triangles.at(0);
+            const auto &t2 = containing_triangles.at(1);
+            const auto shared_vertices = this->findSharedVertices(t1, t2);
+            const auto unshared_vertices = this->findUnsharedVertices(t1, t2);
+
+            this->erase(t1);
+            this->erase(t2);
+
+            for (const auto &shared_v : shared_vertices)
             {
-                if (t.hasEdge(e))
+                if (shared_v != v)
                 {
-                    std::cout << "Found triangle that includes edge" << std::endl;
-                    edge_triangles.push_back(t);
-                    if (edge_triangles.size() == 2)
-                    {
-                        std::cout << "Found two triangles that include edge" << std::endl;
-                        break;
-                    }
+                    triangles_.emplace_back(shared_v, unshared_vertices.at(0), v);
+                    triangles_.emplace_back(shared_v, unshared_vertices.at(1), v);
                 }
             }
-
-            if (edge_triangles.size() == 2)
-            {
-                auto &et1 = edge_triangles.at(0);
-                auto &et2 = edge_triangles.at(1);
-                if (et1 == et2)
-                    throw std::runtime_error("Duplicate triangle found");
-
-                const PointPtr unshared_p = this->findUnsharedVertex(et1, et2);
-                if (et1.includePoint(unshared_p))
-                {
-                    this->draw();
-                    this->flip(et1, et2);
-                    this->draw();
-                }
-            }
-
-
         }
     }
-
+    this->deleteSuperTriangle();
 }
 
+
+void DelaunayTriangulation::erase(const Triangle &t)
+{
+    triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t),
+                     triangles_.end());
+}
 
 void DelaunayTriangulation::draw()
 {
-    static int draw_counter = 0;
-    std::cout << "Drawing image " << draw_counter++ << std::endl;
-
     img_ = cv::Mat(image_height_, image_width_, CV_8UC3, background_color_);
 
-    this->drawPoints();
+    this->drawVertices();
     this->drawTriangles();
 
     cv::namedWindow("drawing", cv::WINDOW_AUTOSIZE | cv::WINDOW_FREERATIO);
@@ -126,11 +108,11 @@ void DelaunayTriangulation::draw()
     cv::waitKey(0);
 }
 
-void DelaunayTriangulation::drawPoints()
+void DelaunayTriangulation::drawVertices()
 {
-    for (const auto &p : points_)
+    for (const auto &v : vertices_)
     {
-        p->draw(img_);
+        v.draw(img_);
     }
 }
 
@@ -142,77 +124,114 @@ void DelaunayTriangulation::drawTriangles()
     }
 }
 
-void DelaunayTriangulation::addBoundingTriangle()
+void DelaunayTriangulation::setupSuperTriangle()
 {
-    // const PointPtr p1 = std::make_shared<Point>(-1e5, -1e5);
-    // const PointPtr p2 = std::make_shared<Point>(1e5, -1e5);
-    // const PointPtr p3 = std::make_shared<Point>(0, 1e5);
-    const PointPtr p1 = std::make_shared<Point>(0, 0);
-    const PointPtr p2 = std::make_shared<Point>(image_width_, 0);
-    const PointPtr p3 = std::make_shared<Point>(image_width_/2., image_height_);
-    const Triangle t = Triangle(p1, p2, p3);
-    points_.push_back(p1);
-    points_.push_back(p2);
-    points_.push_back(p3);
-    triangles_.push_back(t);
+    double min_x = std::numeric_limits<double>::max();
+    double max_x = std::numeric_limits<double>::min();
+    double min_y = std::numeric_limits<double>::max();
+    double max_y = std::numeric_limits<double>::min();
+    for (const auto &v : vertices_)
+    {
+        if (v.x < min_x) min_x = v.x;
+        if (v.x > max_x) max_x = v.x;
+        if (v.y < min_y) min_y = v.y;
+        if (v.y > max_y) max_y = v.y;
+    }
+
+    // Rectangle that contains all the points
+    const double center_x = (min_x + max_x) / 2.0;
+    const double height = max_y - min_y;
+    const double width = max_x - min_x;
+
+    const Vertex v1{center_x, min_y + 2.0 * height};
+    const Vertex v2{center_x - 1.5 * width, min_y - 0.5 * height};
+    const Vertex v3{center_x + 1.5 * width, min_y - 0.5 * height};
+    super_triangle_vertices_[0] = v1;
+    super_triangle_vertices_[1] = v2;
+    super_triangle_vertices_[2] = v3;
+    triangles_.emplace_back(v1, v2, v3);
 }
 
-PointPtr DelaunayTriangulation::findUnsharedVertex(const Triangle &ref, const Triangle &target) const
+void DelaunayTriangulation::deleteSuperTriangle()
 {
-    if (target.p1 != ref.p1 && target.p1 != ref.p2 && target.p1 != ref.p3)
-        return target.p1;
-    if (target.p2 != ref.p1 && target.p2 != ref.p2 && target.p2 != ref.p3)
-        return target.p2;
-    if (target.p3 != ref.p1 && target.p3 != ref.p2 && target.p3 != ref.p3)
-        return target.p3;
-    throw std::runtime_error("No unshared vertex found");
-};
-
-Edge DelaunayTriangulation::findSharedEdge(const Triangle &t1,
-                                           const Triangle &t2) const
+    // en: Remove triangles that contain the super triangle vertices
+    triangles_.erase(
+        std::remove_if(triangles_.begin(), triangles_.end(),
+            [this](const Triangle& triangle) {
+                for (const auto& v : super_triangle_vertices_) {
+                    if (triangle.has(v)) {
+                        return true; // Remove the triangle
+                    }
+                }
+                return false; // Keep the triangle
+            }),
+        triangles_.end()
+    );
+}
+std::vector<Vertex> DelaunayTriangulation::findSharedVertices(const Triangle &ref, const Triangle &target) const
 {
-    if (t1 == t2)
-        throw std::runtime_error("Duplicate triangles are given");
-
-    std::array<PointPtr, 2> shared_points;
-    size_t index = 0;
-    for (const auto &p1 : {t1.p1, t1.p2, t1.p3})
+    std::vector<Vertex> shared_vertices;
+    for (const auto &v1 : {ref.v1, ref.v2, ref.v3})
     {
-        for (const auto &p2 : {t2.p1, t2.p2, t2.p3})
+        for (const auto &v2 : {target.v1, target.v2, target.v3})
         {
-            if (p1 == p2)
+            if (v1 == v2)
             {
-                shared_points.at(index) = p1;
-                if (++index == 2)
-                    return Edge(shared_points.at(0), shared_points.at(1));
+                shared_vertices.push_back(v1);
             }
         }
     }
-    throw std::runtime_error("No shared edge found");
-}
+    if (shared_vertices.size() == 0)
+    {
+        throw std::runtime_error("No shared vertices found");
+    }
+    else if (shared_vertices.size() == 1)
+    {
+        throw std::runtime_error("Only one shared vertex found");
+    }
+    else if (shared_vertices.size() > 2)
+    {
+        throw std::runtime_error("More than two shared vertices found");
+    }
+    return shared_vertices;
+};
 
-void DelaunayTriangulation::flip(const Triangle &t1, const Triangle &t2)
+std::vector<Vertex> DelaunayTriangulation::findUnsharedVertices(const Triangle &t1, const Triangle &t2) const
 {
-    std::cout << "Flipping triangles" << std::endl;
+    std::vector<Vertex> unshared_points;
 
-    const auto shared_edge = this->findSharedEdge(t1, t2);
-    const auto unshared_p1 = this->findUnsharedVertex(t1, t2);
-    const auto unshared_p2 = this->findUnsharedVertex(t2, t1);
+    // Search for t1's unshared vertices
+    for (const auto &v1 : {t1.v1, t1.v2, t1.v3})
+    {
+        if (!(v1 == t2.v1 || v1 == t2.v2 || v1 == t2.v3))
+        {
+            unshared_points.push_back(v1);
+        }
+    }
 
-    // create the new triangles
-    std::cout << "Creating flipped triangles" << std::endl;
-    triangles_.push_back(Triangle(unshared_p1, shared_edge.p1, unshared_p2));
-    triangles_.push_back(Triangle(unshared_p1, shared_edge.p2, unshared_p2));
+    // Search for t2's unshared vertices
+    for (const auto &v2 : {t2.v1, t2.v2, t2.v3})
+    {
+        if (!(v2 == t1.v1 || v2 == t1.v2 || v2 == t1.v3))
+        {
+            unshared_points.push_back(v2);
+        }
+    }
 
-    // remove the triangles from the lists
-    triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t1), triangles_.end());
-    triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t2), triangles_.end());
-
-    edge_stack_.emplace(unshared_p1, shared_edge.p1);
-    edge_stack_.emplace(unshared_p1, shared_edge.p2);
-    edge_stack_.emplace(unshared_p2, shared_edge.p1);
-    edge_stack_.emplace(unshared_p2, shared_edge.p2);
+    // Validation
+    if (unshared_points.size() == 0)
+    {
+        throw std::runtime_error("No unshared vertices found");
+    }
+    else if (unshared_points.size() == 1)
+    {
+        throw std::runtime_error("Only one unshared vertex found");
+    }
+    else if (unshared_points.size() > 2)
+    {
+        throw std::runtime_error("More than two unshared vertices found");
+    }
+    return unshared_points;
 }
-
 
 } // namespace delaunay_Triangulation

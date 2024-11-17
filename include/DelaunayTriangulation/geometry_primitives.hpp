@@ -2,7 +2,6 @@
 #define DELAUNAY_TRIANGULATION__GEOMETRY_PRIMITIVES_HPP
 
 #include <opencv2/opencv.hpp>
-#include <memory>
 #include <iostream>
 
 namespace delaunay_triangulation
@@ -14,7 +13,7 @@ public:
     Vertex() : x(0), y(0) {}
     explicit Vertex(const double x, const double y) : x(x), y(y) {}
 
-    void draw(cv::Mat &img) const;
+    void draw(cv::Mat &img , const bool draw_coordinate_value=false) const;
 
     Vertex& operator=(Vertex &other);
     Vertex& operator=(const Vertex &other);
@@ -68,11 +67,10 @@ public:
                       const Vertex &v3);
 
     void computeCircumCircle();
-    void draw(cv::Mat &img, bool draw_circum_circle=false) const;
-    [[nodiscard]] bool contains(const Vertex &v) const;
+    void draw(cv::Mat &img, bool draw_circum_circle=false, const cv::Scalar &color = cv::Scalar(0, 0, 0)) const;
+    [[nodiscard]] bool isInCircumCircle(const Vertex &v) const;
     [[nodiscard]] bool has(const Edge &e) const;
     [[nodiscard]] bool has(const Vertex &v) const;
-
     friend std::ostream& operator<<(std::ostream &os, const Triangle &t);
 
     Vertex v1;
@@ -82,14 +80,8 @@ public:
 
 private:
     void validate() const;
-
-    cv::Scalar triangle_color_ = cv::Scalar(0, 0, 0);
 };
 bool operator==(const Triangle &lhs, const Triangle &rhs);
-
-using TrianglePtr = std::shared_ptr<Triangle>;
-bool operator==(const TrianglePtr &lhs, const TrianglePtr &rhs);
-std::ostream& operator<<(std::ostream &os, const TrianglePtr &t);
 
 } // namespace delaunay_Triangulation
 

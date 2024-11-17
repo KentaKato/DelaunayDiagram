@@ -7,6 +7,15 @@
 namespace delaunay_triangulation
 {
 
+namespace // anonymous namespace
+{
+    bool equal(double a, double b, double epsilon = 1e-6)
+    {
+        return std::abs(a - b) < epsilon;
+    }
+}
+
+
 Vertex& Vertex::operator=(Vertex &other)
 {
     x = other.x;
@@ -23,7 +32,7 @@ Vertex& Vertex::operator=(const Vertex &other)
 
 bool operator==(const Vertex &lhs, const Vertex &rhs)
 {
-    return lhs.x == rhs.x && lhs.y == rhs.y;
+    return equal(lhs.x,rhs.x) && equal(lhs.y,rhs.y);
 }
 
 std::ostream& operator<<(std::ostream &os, const Vertex &p)
@@ -39,14 +48,43 @@ Vertex operator+(const Vertex& lhs, const Vertex& rhs)
 
 Vertex operator/(const Vertex& v, double scalar)
 {
-    if (scalar == 0)
+    if (equal(scalar, 0.0))
         throw std::invalid_argument("Division by zero");
     return Vertex{v.x / scalar, v.y / scalar};
 }
 
-void Vertex::draw(cv::Mat &img) const
+void Vertex::draw(cv::Mat &img, const bool draw_coordinate_value) const
 {
     cv::circle(img, cv::Point(x, y), radius_, color_, -1, cv::LINE_AA);
+
+    if (draw_coordinate_value)
+    {
+        std::stringstream ss;
+        ss << "(" << x << ", " << y << ")";
+        std::string coordText = ss.str();
+
+        // Font settings
+        int fontFace = cv::FONT_HERSHEY_SIMPLEX;
+        double fontScale = 0.5;
+        int thickness = 1;
+
+        // Get the text size
+        int baseline = 0;
+        cv::Size textSize = cv::getTextSize(coordText, fontFace, fontScale, thickness, &baseline);
+        baseline += thickness;
+
+        // Calculate the position to draw the text
+        cv::Point textOrg(x + radius_ + 5, y - radius_ - 5);
+
+        // Check if the text fits in the image
+        if (textOrg.x + textSize.width > img.cols)
+            textOrg.x = img.cols - textSize.width;
+        if (textOrg.y - textSize.height < 0)
+            textOrg.y = textSize.height;
+
+        cv::putText(img, coordText, textOrg, fontFace, fontScale, color_, thickness, cv::LINE_AA);
+    }
+
 }
 
 void Circle::draw(cv::Mat &img, bool draw_center) const
@@ -66,7 +104,14 @@ Triangle::Triangle(const Vertex &_v1, const Vertex &_v2, const Vertex &_v3)
         Vertex c = _v3;
 
         // If the points are not sorted counter clockwise, swap them
-        double area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+        const double area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+
+        constexpr double EPSILON = 1e-6;
+        if (std::abs(area) < EPSILON)
+        {
+            throw std::runtime_error("Triangle is degenerate: area is zero");
+        }
+
         if (area < 0)
         {
             const auto tmp = b;
@@ -91,7 +136,8 @@ void Triangle::validate() const
         const std::array<double, 2> vec12 = {b.x - a.x, b.y - a.y};
         const std::array<double, 2> vec13 = {c.x - a.x, c.y - a.y};
         const double cross = vec12.at(0) * vec13.at(1) - vec12.at(1) * vec13.at(0);
-        return cross == 0;
+        constexpr double EPSILON = 1e-6;
+        return std::abs(cross) < EPSILON;
     };
 
     if (v1 == v2 || v2 == v3 || v3 == v1)
@@ -103,37 +149,23 @@ void Triangle::validate() const
 
 void Triangle::computeCircumCircle()
 {
-    auto midpoint = [](const Vertex &a, const Vertex &b) -> Vertex
-    {
-        return Vertex{(a.x + b.x) / 2.0, (a.y + b.y) / 2.0};
-    };
+    // 座標の差を計算
+    double dA = v1.x * v1.x + v1.y * v1.y;
+    double dB = v2.x * v2.x + v2.y * v2.y;
+    double dC = v3.x * v3.x + v3.y * v3.y;
 
-    const Vertex m12 = midpoint(v1, v2);
-    const Vertex m13 = midpoint(v1, v3);
+    double aux1 = (dA*(v3.y - v2.y) + dB*(v1.y - v3.y) + dC*(v2.y - v1.y));
+    double aux2 = -(dA*(v3.x - v2.x) + dB*(v1.x - v3.x) + dC*(v2.x - v1.x));
+    double div = (2*(v1.x*(v3.y - v2.y) + v2.x*(v1.y - v3.y) + v3.x*(v2.y - v1.y)));
 
-    double center_x, center_y;
-    if (v1.y == v2.y)
+    constexpr double EPSILON = 1e-6;
+    if (std::abs(div) < EPSILON)
     {
-        center_x = m12.x;
-        const double perpendicular_slope13 = -(v3.x - v1.x) / (v3.y - v1.y);
-        center_y = m13.y + perpendicular_slope13 * (center_x - m13.x);
+        throw std::runtime_error("Cannot compute circumcircle: division by zero");
     }
-    else if(v1.y == v3.y)
-    {
-        center_x = m13.x;
-        const double perpendicular_slope12 = -(v2.x - v1.x) / (v2.y - v1.y);
-        center_y = m12.y + perpendicular_slope12 * (center_x - m12.x);
-    }
-    else
-    {
-        const double perpendicular_slope12 = -(v2.x - v1.x) / (v2.y - v1.y);
-        const double perpendicular_slope13 = -(v3.x - v1.x) / (v3.y - v1.y);
-        center_x = (m13.y - m12.y +
-                    perpendicular_slope12 * m12.x -
-                    perpendicular_slope13 * m13.x) /
-                    (perpendicular_slope12 - perpendicular_slope13);
-        center_y = m12.y + perpendicular_slope12 * (center_x - m12.x);
-    }
+
+    double center_x = aux1 / div;
+    double center_y = aux2 / div;
 
     circum_circle.center.x = center_x;
     circum_circle.center.y = center_y;
@@ -141,14 +173,14 @@ void Triangle::computeCircumCircle()
 }
 
 
-void Triangle::draw(cv::Mat &img, bool draw_circum_circle) const
+void Triangle::draw(cv::Mat &img, bool draw_circum_circle, const cv::Scalar &color) const
 {
-    cv::line(img, cv::Point(v1.x, v1.y), cv::Point(v2.x, v2.y),
-             triangle_color_, 1, cv::LINE_AA);
-    cv::line(img, cv::Point(v2.x, v2.y), cv::Point(v3.x, v3.y),
-             triangle_color_, 1, cv::LINE_AA);
-    cv::line(img, cv::Point(v3.x, v3.y), cv::Point(v1.x, v1.y),
-             triangle_color_, 1, cv::LINE_AA);
+    const cv::Point p1(static_cast<int>(std::round(v1.x)), static_cast<int>(std::round(v1.y)));
+    const cv::Point p2(static_cast<int>(std::round(v2.x)), static_cast<int>(std::round(v2.y)));
+    const cv::Point p3(static_cast<int>(std::round(v3.x)), static_cast<int>(std::round(v3.y)));
+    cv::line(img, p1, p2, color, 1, cv::LINE_AA);
+    cv::line(img, p2, p3, color, 1, cv::LINE_AA);
+    cv::line(img, p3, p1, color, 1, cv::LINE_AA);
 
     if (draw_circum_circle)
     {
@@ -156,7 +188,7 @@ void Triangle::draw(cv::Mat &img, bool draw_circum_circle) const
     }
 }
 
-bool Triangle::contains(const Vertex &v) const
+bool Triangle::isInCircumCircle(const Vertex &v) const
 {
     double ax = v1.x - v.x;
     double ay = v1.y - v.y;
@@ -189,12 +221,6 @@ std::ostream& operator<<(std::ostream &os, const Triangle &t)
     return os;
 }
 
-std::ostream& operator<<(std::ostream &os, const TrianglePtr &t)
-{
-    os << *t;
-    return os;
-}
-
 bool operator==(const Triangle &lhs, const Triangle &rhs)
 {
     return (lhs.v1 == rhs.v1 && lhs.v2 == rhs.v2 && lhs.v3 == rhs.v3) ||
@@ -203,13 +229,6 @@ bool operator==(const Triangle &lhs, const Triangle &rhs)
            (lhs.v1 == rhs.v2 && lhs.v2 == rhs.v3 && lhs.v3 == rhs.v1) ||
            (lhs.v1 == rhs.v3 && lhs.v2 == rhs.v1 && lhs.v3 == rhs.v2) ||
            (lhs.v1 == rhs.v3 && lhs.v2 == rhs.v2 && lhs.v3 == rhs.v1);
-}
-
-bool operator==(const TrianglePtr &lhs, const TrianglePtr &rhs)
-{
-    if(!lhs || !rhs)
-        throw std::invalid_argument("nullptr");
-    return *lhs == *rhs;
 }
 
 } // namespace delaunay_triangulation

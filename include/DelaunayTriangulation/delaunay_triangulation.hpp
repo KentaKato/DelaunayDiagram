@@ -17,17 +17,20 @@ public:
     DelaunayTriangulation();
     void addVertex(double x, double y);
     void addVertex(const Vertex &p);
-    void createDelaunayTriangles();
+    void removeLastVertex();
+    void createDelaunayTriangles(cv::Mat &img);
     void draw(cv::Mat &img);
+    void switchDrawCircumCircles();
+    void switchDrawSuperTriangles();
+    void switchDrawVertexCoordinate();
 
 private:
-    const cv::Scalar background_color_ = cv::Scalar(255,255,255);
-    const int image_width_ = 500;
-    const int image_height_ = 500;
-
     std::vector<Triangle> triangles_;
     std::vector<Vertex> vertices_;
     std::array<Vertex, 3> super_triangle_vertices_;
+    bool draw_circum_circles_ = false;
+    bool draw_super_triangles_ = false;
+    bool draw_vertex_coordinate_ = false;
 
     void reset();
 
@@ -37,6 +40,7 @@ private:
 
     void setupSuperTriangle();
     void deleteSuperTriangle();
+    bool isSuperTriangle(const Triangle &t) const;
     void parseUniqueVertices(const std::vector<Triangle> &triangles, std::vector<Vertex> &unique_vertices) const;
     void sortCounterClockwise(std::vector<Vertex> &polygon_vertices) const;
     std::vector<Vertex> findSharedVertices(const Triangle &t1, const Triangle &t2) const;

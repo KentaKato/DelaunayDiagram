@@ -40,6 +40,10 @@ int main()
     cv::setMouseCallback("Delaunay Triangulation", onMouse, &callbackData);
 
     constexpr int ESC_KEY = 27;
+    constexpr int z_KEY = 'z';
+    constexpr int c_KEY = 'c';
+    constexpr int s_KEY = 's';
+    constexpr int t_KEY = 't';
     while (true) {
         cv::imshow("Delaunay Triangulation", img);
         int key = cv::waitKey(1);
@@ -47,6 +51,32 @@ int main()
         {
             // If the user presses the ESC key, exit the loop
             break;
+        }
+        else if (key == z_KEY)
+        {
+            delaunay.removeLastVertex();
+            delaunay.createDelaunayTriangles(img);
+            img.setTo(WHITE_BG);
+            delaunay.draw(img);
+        }
+        else if (key == c_KEY)
+        {
+            delaunay.switchDrawCircumCircles();
+            img.setTo(WHITE_BG);
+            delaunay.draw(img);
+        }
+        else if (key == s_KEY)
+        {
+            delaunay.switchDrawSuperTriangles();
+            delaunay.createDelaunayTriangles(img);
+            img.setTo(WHITE_BG);
+            delaunay.draw(img);
+        }
+        else if (key == t_KEY)
+        {
+            delaunay.switchDrawVertexCoordinate();
+            img.setTo(WHITE_BG);
+            delaunay.draw(img);
         }
     }
 

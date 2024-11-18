@@ -19,30 +19,19 @@ public:
     void addVertex(const Vertex &p);
     void removeLastVertex();
     void createDelaunayTriangles(cv::Mat &img);
-    void draw(cv::Mat &img);
-    void switchDrawCircumCircles();
-    void switchDrawSuperTriangles();
-    void switchDrawVertexCoordinate();
-    void switchFillTriangle();
+    std::vector<Triangle> getTriangles() const;
+    std::vector<Triangle> getSuperTriangles() const;
+    std::vector<Vertex> getVertices() const { return vertices_; }
 
 private:
     std::vector<Triangle> triangles_;
     std::vector<Vertex> vertices_;
-    std::array<Vertex, 3> super_triangle_vertices_;
-    bool draw_circum_circles_ = false;
-    bool draw_super_triangles_ = false;
-    bool draw_vertex_coordinate_ = false;
-    bool fill_triangle_ = true;
+    std::vector<Vertex> super_triangle_vertices_;
 
     void reset();
-
-    void drawVertices(cv::Mat &img);
-    void drawTriangles(cv::Mat &img);
     void erase(const Triangle &t);
     void erase(const std::vector<Triangle> &triangles);
-
     void setupSuperTriangle();
-    void deleteSuperTriangle();
     bool isSuperTriangle(const Triangle &t) const;
     std::vector<Edge> parseUnsharedEdges(const std::vector<Triangle> &triangles) const;
 

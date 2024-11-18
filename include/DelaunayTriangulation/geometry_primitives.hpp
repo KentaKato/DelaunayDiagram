@@ -23,7 +23,8 @@ public:
 
 private:
     const int radius_ = 2;
-    const cv::Scalar color_ = cv::Scalar(0, 0, 0);
+    const cv::Scalar line_color_ = cv::Scalar(0, 0, 0);
+    const cv::Scalar text_color_ = cv::Scalar(255, 0, 0);
 };
 
 bool operator==(const Vertex &lhs, const Vertex &rhs);

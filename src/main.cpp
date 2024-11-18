@@ -1,12 +1,13 @@
 #include <opencv2/opencv.hpp>
 
 #include "DelaunayTriangulation/delaunay_triangulation.hpp"
+#include "DelaunayTriangulation/delaunay_triangulation_drawer.hpp"
 
 
-cv::Scalar WHITE_BG(255, 255, 255);
 
 struct MouseCallbackData {
     delaunay_triangulation::DelaunayTriangulation* delaunay;
+    delaunay_triangulation::DelaunayTriangulationDrawer* drawer;
     cv::Mat* img;
 };
 
@@ -14,10 +15,11 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
 {
     MouseCallbackData* data = static_cast<MouseCallbackData*>(userdata);
     if (event == cv::EVENT_LBUTTONDOWN) {
-        data->img->setTo(WHITE_BG);
-        data->delaunay->addVertex(x, y);
-        data->delaunay->createDelaunayTriangles(*data->img);
-        data->delaunay->draw(*data->img);
+        const auto &delaunay = data->delaunay;
+        const auto &drawer = data->drawer;
+        delaunay->addVertex(x, y);
+        delaunay->createDelaunayTriangles(*data->img);
+        drawer->draw(*data->img);
     }
 }
 
@@ -26,15 +28,18 @@ int main()
     // Initial image
     int image_width = 1000;
     int image_height = 1000;
-    cv::Mat img = cv::Mat(image_height, image_width, CV_8UC3, WHITE_BG);
+    cv::Scalar white(255, 255, 255);
+    cv::Mat img = cv::Mat(image_height, image_width, CV_8UC3, white);
 
     // Window
     cv::namedWindow("Delaunay Triangulation", cv::WINDOW_AUTOSIZE);
 
     delaunay_triangulation::DelaunayTriangulation delaunay;
+    delaunay_triangulation::DelaunayTriangulationDrawer drawer(delaunay);
 
     MouseCallbackData callbackData;
     callbackData.delaunay = &delaunay;
+    callbackData.drawer = &drawer;
     callbackData.img = &img;
 
     cv::setMouseCallback("Delaunay Triangulation", onMouse, &callbackData);
@@ -57,33 +62,28 @@ int main()
         {
             delaunay.removeLastVertex();
             delaunay.createDelaunayTriangles(img);
-            img.setTo(WHITE_BG);
-            delaunay.draw(img);
+            drawer.draw(img);
         }
         else if (key == c_KEY)
         {
-            delaunay.switchDrawCircumCircles();
-            img.setTo(WHITE_BG);
-            delaunay.draw(img);
+            drawer.switchDrawCircumCircles();
+            drawer.draw(img);
         }
         else if (key == s_KEY)
         {
-            delaunay.switchDrawSuperTriangles();
+            drawer.switchDrawSuperTriangles();
             delaunay.createDelaunayTriangles(img);
-            img.setTo(WHITE_BG);
-            delaunay.draw(img);
+            drawer.draw(img);
         }
         else if (key == t_KEY)
         {
-            delaunay.switchDrawVertexCoordinate();
-            img.setTo(WHITE_BG);
-            delaunay.draw(img);
+            drawer.switchDrawVertexCoordinate();
+            drawer.draw(img);
         }
         else if (key == f_KEY)
         {
-            delaunay.switchFillTriangle();
-            img.setTo(WHITE_BG);
-            delaunay.draw(img);
+            drawer.switchFillTriangle();
+            drawer.draw(img);
         }
     }
 

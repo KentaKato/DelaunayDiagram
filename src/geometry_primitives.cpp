@@ -53,7 +53,7 @@ Vertex operator/(const Vertex& v, double scalar)
 
 void Vertex::draw(cv::Mat &img, const bool draw_coordinate_value) const
 {
-    cv::circle(img, cv::Point(x, y), radius_, color_, -1, cv::LINE_AA);
+    cv::circle(img, cv::Point(x, y), radius_, line_color_, -1, cv::LINE_AA);
 
     if (draw_coordinate_value)
     {
@@ -80,9 +80,8 @@ void Vertex::draw(cv::Mat &img, const bool draw_coordinate_value) const
         if (textOrg.y - textSize.height < 0)
             textOrg.y = textSize.height;
 
-        cv::putText(img, coordText, textOrg, fontFace, fontScale, color_, thickness, cv::LINE_AA);
+        cv::putText(img, coordText, textOrg, fontFace, fontScale, text_color_, thickness, cv::LINE_AA);
     }
-
 }
 
 void Circle::draw(cv::Mat &img, bool draw_center) const
@@ -159,7 +158,7 @@ void Triangle::computeCircumCircle()
     constexpr double EPSILON = 1e-6;
     if (std::abs(div) < EPSILON)
     {
-        throw std::runtime_error("Cannot compute circumcircle: division by zero");
+        throw std::runtime_error("Cannot compute circum circle: division by zero");
     }
 
     double center_x = aux1 / div;

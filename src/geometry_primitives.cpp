@@ -6,7 +6,6 @@
 
 namespace delaunay_triangulation
 {
-
 namespace // anonymous namespace
 {
     bool equal(double a, double b, double epsilon = 1e-6)
@@ -14,7 +13,6 @@ namespace // anonymous namespace
         return std::abs(a - b) < epsilon;
     }
 }
-
 
 Vertex& Vertex::operator=(Vertex &other)
 {
@@ -173,19 +171,29 @@ void Triangle::computeCircumCircle()
 }
 
 
-void Triangle::draw(cv::Mat &img, bool draw_circum_circle, const cv::Scalar &color) const
+void Triangle::draw(cv::Mat &img, const bool fill, const cv::Scalar &edge_color) const
 {
     const cv::Point p1(static_cast<int>(std::round(v1.x)), static_cast<int>(std::round(v1.y)));
     const cv::Point p2(static_cast<int>(std::round(v2.x)), static_cast<int>(std::round(v2.y)));
     const cv::Point p3(static_cast<int>(std::round(v3.x)), static_cast<int>(std::round(v3.y)));
-    cv::line(img, p1, p2, color, 1, cv::LINE_AA);
-    cv::line(img, p2, p3, color, 1, cv::LINE_AA);
-    cv::line(img, p3, p1, color, 1, cv::LINE_AA);
-
-    if (draw_circum_circle)
+    const auto p = std::vector<cv::Point>{p1, p2, p3};
+    if (fill)
     {
-        circum_circle.draw(img, true);
+        static constexpr int COLOR_OFFSET = 30;
+        const int blue = static_cast<int>(v1.x + v3.y) % (256 - COLOR_OFFSET) + COLOR_OFFSET;
+        const int green = static_cast<int>(v2.x + v1.y) % (256 - COLOR_OFFSET) + COLOR_OFFSET;
+        const int red = static_cast<int>(v3.x + v2.y) % (256 - COLOR_OFFSET) + COLOR_OFFSET;
+        cv::fillConvexPoly(img, p, cv::Scalar(blue, green, red), cv::LINE_AA);
     }
+    else
+    {
+        cv::polylines(img, p, true, edge_color, 1, cv::LINE_AA);
+    }
+}
+
+void Triangle::draw_circum_circle(cv::Mat &img) const
+{
+    circum_circle.draw(img, true);
 }
 
 bool Triangle::isInCircumCircle(const Vertex &v) const

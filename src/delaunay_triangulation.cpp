@@ -2,7 +2,6 @@
 
 #include "DelaunayTriangulation/delaunay_triangulation.hpp"
 
-#include <numeric>
 
 namespace delaunay_triangulation
 {
@@ -40,6 +39,10 @@ void DelaunayTriangulation::switchDrawSuperTriangles(){
 
 void DelaunayTriangulation::switchDrawVertexCoordinate(){
     draw_vertex_coordinate_ = !draw_vertex_coordinate_;
+}
+
+void DelaunayTriangulation::switchFillTriangle(){
+    fill_triangle_ = !fill_triangle_;
 }
 
 void DelaunayTriangulation::reset()
@@ -103,8 +106,8 @@ void DelaunayTriangulation::erase(const std::vector<Triangle> &triangles)
 
 void DelaunayTriangulation::draw(cv::Mat &img)
 {
-    this->drawVertices(img);
     this->drawTriangles(img);
+    this->drawVertices(img);
 }
 
 void DelaunayTriangulation::drawVertices(cv::Mat &img)
@@ -122,11 +125,15 @@ void DelaunayTriangulation::drawTriangles(cv::Mat &img)
         if (draw_super_triangles_ && isSuperTriangle(t))
         {
             const cv::Scalar green{0, 255, 0};
-            t.draw(img, draw_circum_circles_, green);
+            t.draw(img, fill_triangle_, green);
         }
         else
         {
-            t.draw(img, draw_circum_circles_);
+            t.draw(img, fill_triangle_);
+        }
+        if (draw_circum_circles_)
+        {
+            t.draw_circum_circle(img);
         }
     }
 }
@@ -186,6 +193,8 @@ bool DelaunayTriangulation::isSuperTriangle(const Triangle &t) const
 
 std::vector<Edge> DelaunayTriangulation::parseUnsharedEdges(const std::vector<Triangle> &triangles) const
 {
+    // TODO: The current computational complexity is O(n),
+    //       so it should be changed to O(n) by counting the number of occurrences of edges.
     std::vector<Edge> unshared_edges;
     for (size_t i = 0, n = triangles.size(); i < n; ++i)
     {

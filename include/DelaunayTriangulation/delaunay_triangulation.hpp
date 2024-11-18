@@ -23,6 +23,7 @@ public:
     void switchDrawCircumCircles();
     void switchDrawSuperTriangles();
     void switchDrawVertexCoordinate();
+    void switchFillTriangle();
 
 private:
     std::vector<Triangle> triangles_;
@@ -31,6 +32,7 @@ private:
     bool draw_circum_circles_ = false;
     bool draw_super_triangles_ = false;
     bool draw_vertex_coordinate_ = false;
+    bool fill_triangle_ = true;
 
     void reset();
 

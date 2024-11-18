@@ -40,10 +40,11 @@ int main()
     cv::setMouseCallback("Delaunay Triangulation", onMouse, &callbackData);
 
     constexpr int ESC_KEY = 27;
-    constexpr int z_KEY = 'z';
-    constexpr int c_KEY = 'c';
-    constexpr int s_KEY = 's';
-    constexpr int t_KEY = 't';
+    constexpr int z_KEY = 'z'; // undo
+    constexpr int c_KEY = 'c'; // draw circum circles
+    constexpr int s_KEY = 's'; // draw super triangles
+    constexpr int t_KEY = 't'; // draw vertex coordinate
+    constexpr int f_KEY = 'f'; // fill triangle
     while (true) {
         cv::imshow("Delaunay Triangulation", img);
         int key = cv::waitKey(1);
@@ -75,6 +76,12 @@ int main()
         else if (key == t_KEY)
         {
             delaunay.switchDrawVertexCoordinate();
+            img.setTo(WHITE_BG);
+            delaunay.draw(img);
+        }
+        else if (key == f_KEY)
+        {
+            delaunay.switchFillTriangle();
             img.setTo(WHITE_BG);
             delaunay.draw(img);
         }

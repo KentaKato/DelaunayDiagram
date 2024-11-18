@@ -23,7 +23,7 @@ public:
 
 private:
     const int radius_ = 2;
-    const cv::Scalar color_ = cv::Scalar(200, 0, 0);
+    const cv::Scalar color_ = cv::Scalar(0, 0, 0);
 };
 
 bool operator==(const Vertex &lhs, const Vertex &rhs);
@@ -67,7 +67,8 @@ public:
                       const Vertex &v3);
 
     void computeCircumCircle();
-    void draw(cv::Mat &img, bool draw_circum_circle=false, const cv::Scalar &color = cv::Scalar(0, 0, 0)) const;
+    void draw(cv::Mat &img, const bool fill, const cv::Scalar &edge_color = cv::Scalar(0, 0, 0)) const;
+    void draw_circum_circle(cv::Mat &img) const;
     [[nodiscard]] bool isInCircumCircle(const Vertex &v) const;
     [[nodiscard]] bool has(const Edge &e) const;
     [[nodiscard]] bool has(const Vertex &v) const;

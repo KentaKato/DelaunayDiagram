@@ -73,9 +73,7 @@ public:
     [[nodiscard]] bool has(const Vertex &v) const;
     friend std::ostream& operator<<(std::ostream &os, const Triangle &t);
 
-    Vertex v1;
-    Vertex v2;
-    Vertex v3;
+    Vertex v1, v2, v3;
     Circle circum_circle;
 
 private:

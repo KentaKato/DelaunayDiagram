@@ -37,14 +37,12 @@ private:
     void drawVertices(cv::Mat &img);
     void drawTriangles(cv::Mat &img);
     void erase(const Triangle &t);
+    void erase(const std::vector<Triangle> &triangles);
 
     void setupSuperTriangle();
     void deleteSuperTriangle();
     bool isSuperTriangle(const Triangle &t) const;
-    void parseUniqueVertices(const std::vector<Triangle> &triangles, std::vector<Vertex> &unique_vertices) const;
-    void sortCounterClockwise(std::vector<Vertex> &polygon_vertices) const;
-    std::vector<Vertex> findSharedVertices(const Triangle &t1, const Triangle &t2) const;
-    std::vector<Vertex> findUnsharedVertices(const Triangle &t1, const Triangle &t2) const;
+    std::vector<Edge> parseUnsharedEdges(const std::vector<Triangle> &triangles) const;
 
 };
 

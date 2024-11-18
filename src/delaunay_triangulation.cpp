@@ -74,42 +74,11 @@ void DelaunayTriangulation::createDelaunayTriangles(cv::Mat &img)
         };
 
         const auto containing_triangles = find_triangle_containing_vertex(v);
-        if (containing_triangles.empty())
+        const auto unshared_edges = this->parseUnsharedEdges(containing_triangles);
+        this->erase(containing_triangles);
+        for (const auto &e : unshared_edges)
         {
-            // std::cout << "No triangle contains the vertex: " << v << std::endl;
-            continue;
-        }
-
-        if (containing_triangles.size() == 1)
-        {
-            const auto &t_contains_v = containing_triangles.at(0);
-            this->erase(t_contains_v);
-            triangles_.emplace_back(t_contains_v.v1, t_contains_v.v2, v);
-            triangles_.emplace_back(t_contains_v.v2, t_contains_v.v3, v);
-            triangles_.emplace_back(t_contains_v.v3, t_contains_v.v1, v);
-        }
-        if (containing_triangles.size() > 1)
-        {
-            std::vector<Vertex> polygon_vertices;
-            this->parseUniqueVertices(containing_triangles, polygon_vertices);
-            this->sortCounterClockwise(polygon_vertices);
-
-            std::cout << "num containing triangles: " << containing_triangles.size() << std::endl;
-            // Delete the triangles that contain the vertex
-            for (const auto &t : containing_triangles)
-            {
-                std::cout << "erasing triangle: " << t << std::endl;
-                this->erase(t);
-            }
-
-            // Create new triangles in counterclockwise order
-            for (size_t i = 0, n = polygon_vertices.size(); i < n; ++i)
-            {
-                const auto &v1 = polygon_vertices.at(i);
-                const auto &v2 = polygon_vertices.at((i + 1) % polygon_vertices.size());
-                triangles_.emplace_back(v1, v2, v);
-            }
-
+            triangles_.emplace_back(e.v1, e.v2, v);
         }
     }
     if (!draw_super_triangles_)
@@ -118,11 +87,18 @@ void DelaunayTriangulation::createDelaunayTriangles(cv::Mat &img)
     }
 }
 
-
 void DelaunayTriangulation::erase(const Triangle &t)
 {
-    triangles_.erase(std::remove(triangles_.begin(), triangles_.end(), t),
-                     triangles_.end());
+    std::erase(triangles_, t);
+}
+
+void DelaunayTriangulation::erase(const std::vector<Triangle> &triangles)
+{
+    for (const auto &t : triangles)
+    {
+        this->erase(t);
+        std::erase(triangles_, t);
+    }
 }
 
 void DelaunayTriangulation::draw(cv::Mat &img)
@@ -208,121 +184,39 @@ bool DelaunayTriangulation::isSuperTriangle(const Triangle &t) const
     return false;
 }
 
-void DelaunayTriangulation::parseUniqueVertices(const std::vector<Triangle> &triangles, std::vector<Vertex> &unique_vertices) const
+std::vector<Edge> DelaunayTriangulation::parseUnsharedEdges(const std::vector<Triangle> &triangles) const
 {
-    unique_vertices.clear();
-    for (const auto &t : triangles)
+    std::vector<Edge> unshared_edges;
+    for (size_t i = 0, n = triangles.size(); i < n; ++i)
     {
-        for (const auto &v : {t.v1, t.v2, t.v3})
+        const auto & t_i = triangles[i];
+        std::vector<Edge> edges{
+            Edge{t_i.v1, t_i.v2},
+            Edge{t_i.v2, t_i.v3},
+            Edge{t_i.v3, t_i.v1}};
+        for (const auto & e : edges)
         {
-            if (std::find(
-                    unique_vertices.begin(),
-                    unique_vertices.end(),
-                    v) == unique_vertices.end())
+            bool shared = false;
+            for (size_t j = 0; j < n; ++j)
             {
-                unique_vertices.push_back(v);
+                if (i == j)
+                {
+                    continue;
+                }
+                const auto & t_j = triangles[j];
+                if (t_j.has(e))
+                {
+                    shared = true;
+                    break;
+                }
+            }
+            if (!shared)
+            {
+                unshared_edges.push_back(e);
             }
         }
     }
-}
-
-void DelaunayTriangulation::sortCounterClockwise(std::vector<Vertex> &polygon_vertices) const
-{
-    if (polygon_vertices.empty()) {
-        return;
-    }
-
-    // centroid of the polygon
-    const auto centroid = std::accumulate(polygon_vertices.begin(), polygon_vertices.end(), Vertex{0, 0}) / static_cast<double>(polygon_vertices.size());
-
-    struct VertexWithAngle {
-        Vertex vertex;
-        double angle;
-    };
-
-    std::vector<VertexWithAngle> vertices_with_angles;
-    vertices_with_angles.reserve(polygon_vertices.size());
-
-    for (const auto& v : polygon_vertices) {
-        const double angle = std::atan2(v.y - centroid.y, v.x - centroid.x);
-        vertices_with_angles.push_back({v, angle});
-    }
-
-    // Sort the vertices by angle
-    std::sort(vertices_with_angles.begin(), vertices_with_angles.end(),
-        [](const VertexWithAngle& a, const VertexWithAngle& b) {
-            return a.angle < b.angle;
-        });
-
-    // Replace the original vertices with the sorted vertices
-    for (size_t i = 0; i < polygon_vertices.size(); ++i) {
-        polygon_vertices[i] = vertices_with_angles[i].vertex;
-    }
-}
-std::vector<Vertex> DelaunayTriangulation::findSharedVertices(const Triangle &ref, const Triangle &target) const
-{
-    std::vector<Vertex> shared_vertices;
-    for (const auto &v1 : {ref.v1, ref.v2, ref.v3})
-    {
-        for (const auto &v2 : {target.v1, target.v2, target.v3})
-        {
-            if (v1 == v2)
-            {
-                shared_vertices.push_back(v1);
-            }
-        }
-    }
-    if (shared_vertices.size() == 0)
-    {
-        throw std::runtime_error("No shared vertices found");
-    }
-    else if (shared_vertices.size() == 1)
-    {
-        throw std::runtime_error("Only one shared vertex found");
-    }
-    else if (shared_vertices.size() > 2)
-    {
-        throw std::runtime_error("More than two shared vertices found");
-    }
-    return shared_vertices;
-};
-
-std::vector<Vertex> DelaunayTriangulation::findUnsharedVertices(const Triangle &t1, const Triangle &t2) const
-{
-    std::vector<Vertex> unshared_points;
-
-    // Search for t1's unshared vertices
-    for (const auto &v1 : {t1.v1, t1.v2, t1.v3})
-    {
-        if (!(v1 == t2.v1 || v1 == t2.v2 || v1 == t2.v3))
-        {
-            unshared_points.push_back(v1);
-        }
-    }
-
-    // Search for t2's unshared vertices
-    for (const auto &v2 : {t2.v1, t2.v2, t2.v3})
-    {
-        if (!(v2 == t1.v1 || v2 == t1.v2 || v2 == t1.v3))
-        {
-            unshared_points.push_back(v2);
-        }
-    }
-
-    // Validation
-    if (unshared_points.size() == 0)
-    {
-        throw std::runtime_error("No unshared vertices found");
-    }
-    else if (unshared_points.size() == 1)
-    {
-        throw std::runtime_error("Only one unshared vertex found");
-    }
-    else if (unshared_points.size() > 2)
-    {
-        throw std::runtime_error("More than two unshared vertices found");
-    }
-    return unshared_points;
+    return unshared_edges;
 }
 
 } // namespace delaunay_Triangulation

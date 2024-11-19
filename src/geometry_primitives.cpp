@@ -33,6 +33,11 @@ bool operator==(const Vertex &lhs, const Vertex &rhs)
     return equal(lhs.x,rhs.x) && equal(lhs.y,rhs.y);
 }
 
+bool operator<(const Vertex &lhs, const Vertex &rhs)
+{
+    return std::tie(lhs.x, lhs.y) < std::tie(rhs.x, rhs.y);
+}
+
 std::ostream& operator<<(std::ostream &os, const Vertex &p)
 {
     os << "(x, y) = (" << p.x << ", " << p.y << ")";
@@ -53,7 +58,7 @@ Vertex operator/(const Vertex& v, double scalar)
 
 void Vertex::draw(cv::Mat &img, const bool draw_coordinate_value) const
 {
-    cv::circle(img, cv::Point(x, y), radius_, line_color_, -1, cv::LINE_AA);
+    cv::circle(img, cv::Point(x, y), radius_, vertex_color_, -1, cv::LINE_AA);
 
     if (draw_coordinate_value)
     {

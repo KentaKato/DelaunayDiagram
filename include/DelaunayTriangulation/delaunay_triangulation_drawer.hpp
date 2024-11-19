@@ -20,6 +20,7 @@ public:
     void switchDrawSuperTriangles();
     void switchDrawVertexCoordinate();
     void switchFillTriangle();
+    bool isFillTriangle() const { return fill_triangle_; }
 
 private:
     const DelaunayTriangulation& delaunay_;

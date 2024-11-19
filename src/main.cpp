@@ -2,14 +2,38 @@
 
 #include "DelaunayTriangulation/delaunay_triangulation.hpp"
 #include "DelaunayTriangulation/delaunay_triangulation_drawer.hpp"
+#include "DelaunayTriangulation/voronoi_diagram.hpp"
 
 
+const cv::Scalar WHITE(255,255, 255);
+const cv::Scalar ORANGE(30, 105, 210);
 
 struct MouseCallbackData {
     delaunay_triangulation::DelaunayTriangulation* delaunay;
     delaunay_triangulation::DelaunayTriangulationDrawer* drawer;
     cv::Mat* img;
 };
+
+bool voronoi_enabled = false;
+cv::Scalar voronoi_color;
+
+void draw_voronoi_diagram(
+    cv::Mat &img,
+    const delaunay_triangulation::DelaunayTriangulation &delaunay,
+    const cv::Scalar &color)
+{
+    if (!voronoi_enabled)
+    {
+        return;
+    }
+    delaunay_triangulation::VoronoiDiagram::draw(
+        img,
+        delaunay_triangulation::VoronoiDiagram::create(
+            delaunay.getAllTriangles()
+        ),
+        voronoi_color
+    );
+}
 
 void onMouse(int event, int x, int y, int flags, void* userdata)
 {
@@ -20,6 +44,7 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
         delaunay->addVertex(x, y);
         delaunay->createDelaunayTriangles();
         drawer->draw(*data->img);
+        draw_voronoi_diagram(*data->img, *delaunay, voronoi_color);
     }
 }
 
@@ -50,40 +75,72 @@ int main()
     constexpr int s_KEY = 's'; // draw super triangles
     constexpr int t_KEY = 't'; // draw vertex coordinate
     constexpr int f_KEY = 'f'; // fill triangle
-    while (true) {
+    constexpr int v_KEY = 'v'; // voronoi diagram
+
+    auto switch_voronoi_color = [&drawer]() -> void
+    {
+        if (drawer.isFillTriangle())
+        {
+            voronoi_color = WHITE;
+        }
+        else
+        {
+            voronoi_color = ORANGE;
+        }
+    };
+
+    bool is_running = true;
+    while (is_running) {
         cv::imshow("Delaunay Triangulation", img);
         int key = cv::waitKey(1);
-        if (key == ESC_KEY)
+        switch (key)
         {
-            // If the user presses the ESC key, exit the loop
+        case ESC_KEY:
+            is_running = false;
             break;
-        }
-        else if (key == z_KEY)
-        {
+
+        case z_KEY:
             delaunay.removeLastVertex();
             delaunay.createDelaunayTriangles();
             drawer.draw(img);
-        }
-        else if (key == c_KEY)
-        {
+            draw_voronoi_diagram(img, delaunay, voronoi_color);
+            break;
+
+        case c_KEY:
             drawer.switchDrawCircumCircles();
             drawer.draw(img);
-        }
-        else if (key == s_KEY)
-        {
+            draw_voronoi_diagram(img, delaunay, voronoi_color);
+            break;
+
+        case s_KEY:
             drawer.switchDrawSuperTriangles();
             delaunay.createDelaunayTriangles();
             drawer.draw(img);
-        }
-        else if (key == t_KEY)
-        {
+            draw_voronoi_diagram(img, delaunay, voronoi_color);
+            break;
+
+        case t_KEY:
             drawer.switchDrawVertexCoordinate();
             drawer.draw(img);
-        }
-        else if (key == f_KEY)
-        {
+            draw_voronoi_diagram(img, delaunay, voronoi_color);
+            break;
+
+        case f_KEY:
             drawer.switchFillTriangle();
             drawer.draw(img);
+            switch_voronoi_color();
+            draw_voronoi_diagram(img, delaunay, voronoi_color);
+            break;
+
+        case v_KEY:
+            voronoi_enabled = !voronoi_enabled;
+            drawer.draw(img);
+            switch_voronoi_color();
+            draw_voronoi_diagram(img, delaunay, voronoi_color);
+            break;
+
+        default:
+            break;
         }
     }
 

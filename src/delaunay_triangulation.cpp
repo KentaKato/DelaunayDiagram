@@ -55,6 +55,11 @@ std::vector<Triangle> DelaunayTriangulation::getSuperTriangles() const
     return triangles;
 }
 
+std::vector<Triangle> DelaunayTriangulation::getAllTriangles() const
+{
+    return triangles_;
+}
+
 void DelaunayTriangulation::createDelaunayTriangles()
 {
     reset();

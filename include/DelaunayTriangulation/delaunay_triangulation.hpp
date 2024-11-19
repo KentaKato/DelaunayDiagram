@@ -20,6 +20,7 @@ public:
     void createDelaunayTriangles();
     std::vector<Triangle> getTriangles() const;
     std::vector<Triangle> getSuperTriangles() const;
+    std::vector<Triangle> getAllTriangles() const;
     std::vector<Vertex> getVertices() const { return vertices_; }
 
 private:

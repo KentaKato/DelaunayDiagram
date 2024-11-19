@@ -17,6 +17,7 @@ add_library(${PROJECT_NAME}
   src/geometry_primitives.cpp
   src/delaunay_triangulation.cpp
   src/delaunay_triangulation_drawer.cpp
+  src/voronoi_diagram.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

@@ -4,7 +4,7 @@ A C++ implementation of the Delaunay Triangulation algorithm and Voronoi Diagram
 
 ## Demo
 
-<p float="left"
+<p float="left">
   <img src=".readme/delaunay.gif" width="400" alt="Delaunay Triangulation Demo"/>
   <img src=".readme/voronoi.gif" width="400" alt="Voronoi Diagram Demo"/>
 </p>

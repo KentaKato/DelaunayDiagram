@@ -17,6 +17,7 @@ A C++ implementation of the Delaunay Triangulation algorithm and Voronoi Diagram
 - **`s`**: Show super triangles used in the algorithm.
 - **`z`**: Remove the last added vertex.
 - **`f`**: Fill triangles with color.
+- **`Esc`**: Exit.
 
 ## Installation
 
@@ -75,6 +76,7 @@ After building the project, run the executable:
   - **`s`**: Toggle display of super triangles.
   - **`z`**: Undo the last added vertex.
   - **`f`**: Toggle filling of triangles.
+  - **`Esc`**: Exit.
 
 ## License
 

@@ -1,6 +1,6 @@
-# DelaunayTriangulation
+# DelaunayVoronoiCpp
 
-A C++ implementation of the Delaunay Triangulation algorithm and Voronoi Diagram creation. Delaunay Triangulation uses the Bowyer-Watson method.
+A C++ implementation of the Delaunay Triangulation algorithm and Voronoi Diagram construction. Delaunay Triangulation uses the Bowyer-Watson method.
 
 ## Demo
 

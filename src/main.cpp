@@ -18,7 +18,7 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
         const auto &delaunay = data->delaunay;
         const auto &drawer = data->drawer;
         delaunay->addVertex(x, y);
-        delaunay->createDelaunayTriangles(*data->img);
+        delaunay->createDelaunayTriangles();
         drawer->draw(*data->img);
     }
 }
@@ -61,7 +61,7 @@ int main()
         else if (key == z_KEY)
         {
             delaunay.removeLastVertex();
-            delaunay.createDelaunayTriangles(img);
+            delaunay.createDelaunayTriangles();
             drawer.draw(img);
         }
         else if (key == c_KEY)
@@ -72,7 +72,7 @@ int main()
         else if (key == s_KEY)
         {
             drawer.switchDrawSuperTriangles();
-            delaunay.createDelaunayTriangles(img);
+            delaunay.createDelaunayTriangles();
             drawer.draw(img);
         }
         else if (key == t_KEY)

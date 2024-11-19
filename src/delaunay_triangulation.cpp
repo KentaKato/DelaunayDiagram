@@ -55,7 +55,7 @@ std::vector<Triangle> DelaunayTriangulation::getSuperTriangles() const
     return triangles;
 }
 
-void DelaunayTriangulation::createDelaunayTriangles(cv::Mat &img)
+void DelaunayTriangulation::createDelaunayTriangles()
 {
     reset();
 

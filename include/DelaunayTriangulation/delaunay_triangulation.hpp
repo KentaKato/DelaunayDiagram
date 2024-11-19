@@ -2,7 +2,6 @@
 #define DELAUNAY_TRIANGULATION__DELAUNAY_TRIANGULATION_HPP
 
 #include <opencv2/opencv.hpp>
-#include <array>
 
 
 // Project
@@ -18,7 +17,7 @@ public:
     void addVertex(double x, double y);
     void addVertex(const Vertex &p);
     void removeLastVertex();
-    void createDelaunayTriangles(cv::Mat &img);
+    void createDelaunayTriangles();
     std::vector<Triangle> getTriangles() const;
     std::vector<Triangle> getSuperTriangles() const;
     std::vector<Vertex> getVertices() const { return vertices_; }

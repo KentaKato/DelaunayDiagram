@@ -47,13 +47,13 @@ Ensure you have the following installed:
 3. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/KentaKato/DelaunayTriangulation.git
+   git clone https://github.com/KentaKato/DelaunayVoronoiCpp.git
    ```
 
 4. **Build the Project**
 
    ```bash
-   cd DelaunayTriangulation
+   cd DelaunayVoronoiCpp
    mkdir build
    cd build
    cmake ..

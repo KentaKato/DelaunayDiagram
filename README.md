@@ -65,7 +65,7 @@ Ensure you have the following installed:
 After building the project, run the executable:
 
 ```bash
-./delaunay_triangulation
+./delaunay_voronoi
 ```
 
 - **Add Vertex**: Click on the canvas to add a new vertex.

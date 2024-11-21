@@ -13,7 +13,10 @@ public:
     Vertex() : x(0), y(0) {}
     explicit Vertex(const double x, const double y) : x(x), y(y) {}
 
-    void draw(cv::Mat &img , const bool draw_coordinate_value=false) const;
+    void draw(
+        cv::Mat &img,
+        const bool draw_coordinate_value = false,
+        const cv::Scalar &vertex_color = cv::Scalar(100, 100, 100)) const;
 
     Vertex& operator=(Vertex &other);
     Vertex& operator=(const Vertex &other);
@@ -23,7 +26,6 @@ public:
 
 private:
     const int radius_ = 2;
-    const cv::Scalar vertex_color_ = cv::Scalar(100, 100, 100);
     const cv::Scalar text_color_ = cv::Scalar(255, 0, 0);
 };
 

@@ -56,9 +56,9 @@ Vertex operator/(const Vertex& v, double scalar)
     return Vertex{v.x / scalar, v.y / scalar};
 }
 
-void Vertex::draw(cv::Mat &img, const bool draw_coordinate_value) const
+void Vertex::draw(cv::Mat &img, const bool draw_coordinate_value, const cv::Scalar &vertex_color) const
 {
-    cv::circle(img, cv::Point(x, y), radius_, vertex_color_, -1, cv::LINE_AA);
+    cv::circle(img, cv::Point(x, y), radius_, vertex_color, -1, cv::LINE_AA);
 
     if (draw_coordinate_value)
     {

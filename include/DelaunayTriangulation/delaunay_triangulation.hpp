@@ -17,6 +17,7 @@ public:
     void addVertex(double x, double y);
     void addVertex(const Vertex &p);
     void removeLastVertex();
+    bool hasVertex(const Vertex &v) const;
     void createDelaunayTriangles();
     std::vector<Triangle> getTriangles() const;
     std::vector<Triangle> getSuperTriangles() const;

@@ -29,6 +29,11 @@ void DelaunayTriangulation::removeLastVertex()
     }
 }
 
+bool DelaunayTriangulation::hasVertex(const Vertex &v) const
+{
+    return std::find(vertices_.begin(), vertices_.end(), v) != vertices_.end();
+}
+
 std::vector<Triangle> DelaunayTriangulation::getTriangles() const
 {
     std::vector<Triangle> triangles = triangles_;

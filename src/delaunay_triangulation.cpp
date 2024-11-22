@@ -101,6 +101,13 @@ void DelaunayTriangulation::createDelaunayTriangles()
     }
 }
 
+void DelaunayTriangulation::clear()
+{
+    vertices_.clear();
+    triangles_.clear();
+    super_triangle_vertices_.clear();
+}
+
 void DelaunayTriangulation::reset()
 {
     triangles_.clear();

@@ -41,57 +41,67 @@ int main()
     DelaunayTriangulationDrawer drawer(delaunay);
     drawer.setFillTriangle(false);
 
-    addRandomVertices(delaunay, image_width, image_height, 20);
+    addRandomVertices(delaunay, image_width, image_height, 200);
 
-    delaunay.createDelaunayTriangles();
-    drawer.draw(img);
-    auto voronoi_cells = VoronoiDiagram::create(delaunay.getAllTriangles());
-    delaunay_triangulation::VoronoiDiagram::draw( img, voronoi_cells);
-
-    std::vector<Site> sites;
-    for (const auto & [site, _] : voronoi_cells)
+    while (true)
     {
-        sites.push_back(site);
-    }
+        delaunay.createDelaunayTriangles();
+        // drawer.draw(img);
+        img.setTo(white);
+        auto voronoi_cells = VoronoiDiagram::create(delaunay.getAllTriangles());
+        VoronoiDiagram::draw( img, voronoi_cells);
 
-    std::map<Point, Site> belonging_cells;
-
-    for (const int &x : {0, image_width})
-    {
-        for (const int &y : {0, image_height})
+        std::vector<Site> sites;
+        for (const auto & [site, _] : voronoi_cells)
         {
-            Point p{static_cast<double>(x), static_cast<double>(y)};
-            Site s;
-            VoronoiDiagram::findBelongingCell(sites, p, s);
-            belonging_cells[p] = s;
+            sites.push_back(site);
+        }
+
+        std::map<Point, Site> belonging_cells;
+
+        for (const int &x : {0, image_width})
+        {
+            for (const int &y : {0, image_height})
+            {
+                Point p{static_cast<double>(x), static_cast<double>(y)};
+                Site s;
+                VoronoiDiagram::findBelongingCell(sites, p, s);
+                belonging_cells[p] = s;
+            }
+        }
+
+        std::map<Point, double> weight_map;
+        int step = 10;
+        for (int x = 0; x < image_width; x += step)
+        {
+            for (int y = 0; y < image_height; y += step)
+            {
+                weight_map[Point{static_cast<double>(x), static_cast<double>(y)}] = 1.0;
+            }
+        }
+
+        std::map<Site, Centroid> voronoi_centroids;
+        VoronoiDiagram::computeVoronoiCentroids(
+            sites,
+            weight_map,
+            voronoi_centroids);
+
+        cv::Scalar centroid_color(0, 255, 0);
+        for (const auto & [site, centroid] : voronoi_centroids)
+        {
+            centroid.draw(img, false, centroid_color);
+            site.draw(img, false);
+        }
+
+        cv::imshow("Centroid Voronoi Diagram", img);
+
+        cv::waitKey(0);
+
+        delaunay.clear();
+        for (const auto & [_, centroid] : voronoi_centroids)
+        {
+            delaunay.addVertex(centroid);
         }
     }
-
-    std::map<Point, double> weight_map;
-    for (int x = 0; x < image_width; ++x)
-    {
-        for (int y = 0; y < image_height; ++y)
-        {
-            weight_map[Point{static_cast<double>(x), static_cast<double>(y)}] = 1.0;
-        }
-    }
-
-    std::map<Site, Centroid> voronoi_centroids;
-    VoronoiDiagram::computeVoronoiCentroids(
-        sites,
-        weight_map,
-        voronoi_centroids);
-
-    cv::Scalar centroid_color(0, 255, 0);
-    for (const auto & [site, centroid] : voronoi_centroids)
-    {
-        centroid.draw(img, false, centroid_color);
-    }
-
-
-
-    cv::imshow("Centroid Voronoi Diagram", img);
-
-    cv::waitKey(0);
 }
 

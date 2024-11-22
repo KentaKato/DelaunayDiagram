@@ -19,6 +19,7 @@ public:
     void removeLastVertex();
     bool hasVertex(const Vertex &v) const;
     void createDelaunayTriangles();
+    void clear();
     std::vector<Triangle> getTriangles() const;
     std::vector<Triangle> getSuperTriangles() const;
     std::vector<Triangle> getAllTriangles() const;

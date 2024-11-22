@@ -32,3 +32,11 @@ add_executable(delaunay_voronoi
 target_link_libraries(delaunay_voronoi
   ${PROJECT_NAME}
 )
+
+add_executable(centroid_voronoi
+  src/centroid_voronoi.cpp
+)
+
+target_link_libraries(centroid_voronoi
+  ${PROJECT_NAME}
+)

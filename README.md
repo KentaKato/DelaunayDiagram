@@ -28,7 +28,7 @@ Ensure you have the following installed:
 - **CMake**
 - **YAML-CPP library** (`libyaml-cpp-dev`)
 - **OpenCV library** (`libopencv-dev`)
-- **C++ Compiler** (supporting C++23 or later)
+- **C++ Compiler** (supporting C++20 or later)
 
 ### Installation Steps
 

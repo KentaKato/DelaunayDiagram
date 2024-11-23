@@ -42,7 +42,7 @@ void VoronoiDiagram::computeVoronoiCentroids(
     voronoi_centroids.clear();
 
     std::vector<Point> points;
-
+    points.reserve(weight_map.size());
     for (const auto & [point, _] : weight_map)
     {
         points.push_back(point);
@@ -53,21 +53,23 @@ void VoronoiDiagram::computeVoronoiCentroids(
     std::map<Site, double> total_weight;
     for (const auto &site : sites)
     {
-        total_weight[site] = 0;
+        total_weight[site] = 0.0;
     }
 
     for (const auto & [point, weight] : weight_map)
     {
-        const auto belonging_cell = belonging_cells[point];
+        const auto &belonging_cell = belonging_cells[point];
         if (voronoi_centroids.find(belonging_cell) == voronoi_centroids.end())
         {
             voronoi_centroids[belonging_cell] = point;
+            voronoi_centroids[belonging_cell].x *= weight;
+            voronoi_centroids[belonging_cell].y *= weight;
             total_weight[belonging_cell] = weight;
             continue;
         }
         auto & centroid = voronoi_centroids[belonging_cell];
-        centroid.x = (centroid.x + point.x * weight);
-        centroid.y = (centroid.y + point.y * weight);
+        centroid.x += point.x * weight;
+        centroid.y += point.y * weight;
         total_weight[belonging_cell] += weight;
     }
     for (auto & [site, centroid] : voronoi_centroids)
@@ -82,7 +84,7 @@ void VoronoiDiagram::createBelongingCellMap(
     const std::vector<Point> &points,
     std::map<Point, Site> &belonging_cells)
 {
-        Site site_of_belonging_cell;
+    Site site_of_belonging_cell;
     for (const auto &p : points)
     {
         findBelongingCell(sites, p, site_of_belonging_cell);
@@ -94,13 +96,13 @@ void VoronoiDiagram::findBelongingCell(
     const std::vector<Site> &sites,
     const Point &p, Site &site_of_belonging_cell)
 {
-    auto distance = [](const Vertex &a, const Vertex &b) -> double {
-        return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
+    auto distance2 = [](const Vertex &a, const Vertex &b) -> double {
+        return pow(a.x - b.x, 2) + pow(a.y - b.y, 2);
     };
     double min_distance = std::numeric_limits<double>::max();
     for (const auto &site : sites)
     {
-        double d = distance(p, site);
+        double d = distance2(p, site);
         if (d < min_distance)
         {
             min_distance = d;
@@ -117,6 +119,7 @@ void VoronoiDiagram::draw(
 {
     for (const auto& [vertex, circumcenters] : voronoi_cells) {
         std::vector<cv::Point> points;
+        points.reserve(circumcenters.size());
         for (const auto& circumcenter : circumcenters) {
             points.push_back(cv::Point(circumcenter.x, circumcenter.y));
             cv::circle(img, cv::Point(circumcenter.x, circumcenter.y), 4, color, -1);

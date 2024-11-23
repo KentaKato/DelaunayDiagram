@@ -42,6 +42,7 @@ void VoronoiDiagram::computeVoronoiCentroids(
     voronoi_centroids.clear();
 
     std::vector<Point> points;
+
     for (const auto & [point, _] : weight_map)
     {
         points.push_back(point);

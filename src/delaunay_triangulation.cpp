@@ -34,6 +34,11 @@ bool DelaunayTriangulation::hasVertex(const Vertex &v) const
     return std::find(vertices_.begin(), vertices_.end(), v) != vertices_.end();
 }
 
+void DelaunayTriangulation::reserveVerticesVector(const size_t size)
+{
+    vertices_.reserve(size);
+}
+
 std::vector<Triangle> DelaunayTriangulation::getTriangles() const
 {
     std::vector<Triangle> triangles = triangles_;
@@ -81,6 +86,8 @@ void DelaunayTriangulation::createDelaunayTriangles()
         auto find_triangle_containing_vertex = [this](const Vertex &v) -> std::vector<Triangle>
         {
             std::vector<Triangle> containing_triangles;
+            constexpr size_t SUFFICIENT_CAPACITY = 10;
+            containing_triangles.reserve(SUFFICIENT_CAPACITY);
             for (const auto &t : triangles_)
             {
                 if (t.isInCircumCircle(v))
@@ -94,6 +101,7 @@ void DelaunayTriangulation::createDelaunayTriangles()
         const auto containing_triangles = find_triangle_containing_vertex(v);
         const auto unshared_edges = this->parseUnsharedEdges(containing_triangles);
         this->erase(containing_triangles);
+        triangles_.reserve(vertices_.size() + 3 /* super triangle vertices */);
         for (const auto &e : unshared_edges)
         {
             triangles_.emplace_back(e.v1, e.v2, v);
@@ -174,6 +182,7 @@ std::vector<Edge> DelaunayTriangulation::parseUnsharedEdges(const std::vector<Tr
     // TODO: The current computational complexity is O(n),
     //       so it should be changed to O(n) by counting the number of occurrences of edges.
     std::vector<Edge> unshared_edges;
+    unshared_edges.reserve(3 * triangles.size());
     for (size_t i = 0, n = triangles.size(); i < n; ++i)
     {
         const auto & t_i = triangles[i];

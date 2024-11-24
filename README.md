@@ -4,20 +4,17 @@ A C++ implementation of the Delaunay Triangulation algorithm and Voronoi Diagram
 
 ## Demo
 
+**Delaunay Triangulation & Voronoi Diagram**
+
 <p float="left">
   <img src=".readme/delaunay.gif" width="400" alt="Delaunay Triangulation Demo"/>
   <img src=".readme/voronoi.gif" width="400" alt="Voronoi Diagram Demo"/>
 </p>
 
-## Key Functions
 
-- **`v`**: Draw Voronoi Diagram.
-- **`c`**: Draw circumcircles around triangles.
-- **`t`**: Display the coordinates of vertices.
-- **`s`**: Show super triangles used in the algorithm.
-- **`z`**: Remove the last added vertex.
-- **`f`**: Fill triangles with color.
-- **`Esc`**: Exit.
+**Centroid Voronoi Diagram**
+
+<img src=".readme/centroid_voronoi.gif" width="400" alt="Centroid Voronoi Diagram Demo"/>
 
 ## Installation
 
@@ -64,8 +61,11 @@ Ensure you have the following installed:
 
 After building the project, run the executable:
 
+### Interactive Delaunay Triangulation and Voronoi Tessellation
+
 ```bash
-./delaunay_voronoi
+cd build
+./interactive_delaunay_voronoi
 ```
 
 - **Add Vertex**: Click on the canvas to add a new vertex.
@@ -77,6 +77,13 @@ After building the project, run the executable:
   - **`z`**: Undo the last added vertex.
   - **`f`**: Toggle filling of triangles.
   - **`Esc`**: Exit.
+
+### Centroid Voronoi Diagram
+
+```bash
+cd build
+./centroid_voronoi
+```
 
 ## License
 

@@ -25,11 +25,11 @@ target_link_libraries(${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
 )
 
-add_executable(delaunay_voronoi
-  src/main.cpp
+add_executable(interactive_delaunay_voronoi
+  src/interactive_delaunay_voronoi.cpp
 )
 
-target_link_libraries(delaunay_voronoi
+target_link_libraries(interactive_delaunay_voronoi
   ${PROJECT_NAME}
 )
 

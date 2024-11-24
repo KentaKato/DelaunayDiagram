@@ -1,6 +1,7 @@
 #ifndef DELAUNAY_TRIANGULATION__DELAUNAY_TRIANGULATION_HPP
 #define DELAUNAY_TRIANGULATION__DELAUNAY_TRIANGULATION_HPP
 
+#include <cstddef>
 #include <opencv2/opencv.hpp>
 
 
@@ -17,7 +18,10 @@ public:
     void addVertex(double x, double y);
     void addVertex(const Vertex &p);
     void removeLastVertex();
+    bool hasVertex(const Vertex &v) const;
+    void reserveVerticesVector(const size_t size);
     void createDelaunayTriangles();
+    void clear();
     std::vector<Triangle> getTriangles() const;
     std::vector<Triangle> getSuperTriangles() const;
     std::vector<Triangle> getAllTriangles() const;

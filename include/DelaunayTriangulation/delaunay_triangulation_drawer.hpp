@@ -20,6 +20,12 @@ public:
     void switchDrawSuperTriangles();
     void switchDrawVertexCoordinate();
     void switchFillTriangle();
+
+    void setDrawCircumCircles(bool draw_circum_circles) { draw_circum_circles_ = draw_circum_circles; }
+    void setDrawSuperTriangles(bool draw_super_triangles) { draw_super_triangles_ = draw_super_triangles; }
+    void setDrawVertexCoordinate(bool draw_vertex_coordinate) { draw_vertex_coordinate_ = draw_vertex_coordinate; }
+    void setFillTriangle(bool fill_triangle) { fill_triangle_ = fill_triangle; }
+
     bool isFillTriangle() const { return fill_triangle_; }
 
 private:

@@ -37,6 +37,9 @@ Vertex operator+(const Vertex& lhs, const Vertex& rhs);
 
 Vertex operator/(const Vertex& v, double scalar);
 
+double distance(const Vertex &v1, const Vertex &v2);
+double distance2(const Vertex &v1, const Vertex &v2);
+
 class Edge
 {
 public:
@@ -83,6 +86,8 @@ public:
 
     Vertex v1, v2, v3;
     Circle circum_circle;
+
+    std::vector<Vertex> vertices() const;
 
 private:
     void validate() const;

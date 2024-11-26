@@ -23,10 +23,8 @@ public:
 
         MouseCallbackData callbackData;
         callbackData.delaunay = &delaunay_;
-        callbackData.drawer = &drawer_;
         callbackData.img = &img_;
-        callbackData.voronoi_edge_color = &voronoi_edge_color_;
-        callbackData.voronoi_draw_enabled = voronoi_draw_enabled_;
+        callbackData.finding_nearest_vertex_trace = &finding_nearest_vertex_trace_;
         cv::setMouseCallback("Delaunay Triangulation", onMouse, &callbackData);
 
         auto switch_voronoi_color = [this]() -> void
@@ -85,9 +83,9 @@ public:
             }
             drawer_.draw(img_);
             draw_voronoi_diagram(img_, delaunay_, voronoi_edge_color_, voronoi_draw_enabled_);
+            draw_trace();
         }
     }
-
 
 private:
     static constexpr int ESC_KEY = 27; // exit
@@ -100,10 +98,8 @@ private:
 
     struct MouseCallbackData {
         delaunay_triangulation::DelaunayTriangulation* delaunay;
-        delaunay_triangulation::DelaunayTriangulationDrawer* drawer;
         cv::Mat* img;
-        cv::Scalar* voronoi_edge_color;
-        bool voronoi_draw_enabled;
+        std::vector<Vertex>* finding_nearest_vertex_trace;
     };
 
     const cv::Scalar white_{255,255, 255};
@@ -114,8 +110,27 @@ private:
     DelaunayTriangulationDrawer drawer_;
 
     bool voronoi_draw_enabled_ = false;
+    bool delaunay_draw_enabled_ = true;
     cv::Mat img_;
     cv::Scalar voronoi_edge_color_;
+
+    std::vector<Vertex> finding_nearest_vertex_trace_;
+
+    void draw_trace()
+    {
+        if (finding_nearest_vertex_trace_.empty())
+        {
+            return;
+        }
+        std::vector<cv::Point> points;
+        for (const auto &p : finding_nearest_vertex_trace_)
+        {
+            points.push_back(cv::Point(p.x, p.y));
+        }
+        const cv::Scalar red{255, 0, 0};
+        cv::polylines(img_, points, false, red, 3, cv::LINE_AA);
+        cv::circle(img_, cv::Point(points.back().x, points.back().y), 10, red, -1, cv::LINE_AA);
+    }
 
     static void draw_voronoi_diagram(
         cv::Mat &img,
@@ -138,31 +153,22 @@ private:
     static void onMouse(int event, int x, int y, int flags, void* userdata)
     {
         MouseCallbackData* data = static_cast<MouseCallbackData*>(userdata);
+        const auto &delaunay = data->delaunay;
+        auto &finding_nearest_vertex_trace = *data->finding_nearest_vertex_trace;
         if (event == cv::EVENT_LBUTTONDOWN) {
-            const auto &delaunay = data->delaunay;
-            const auto &drawer = data->drawer;
             delaunay->addVertex(x, y);
             delaunay->createDelaunayTriangles();
-            drawer->draw(*data->img);
-            draw_voronoi_diagram(
-                *data->img,
-                *delaunay,
-                *data->voronoi_edge_color,
-                data->voronoi_draw_enabled);
+            finding_nearest_vertex_trace.clear();
+        }
+        else if (event == cv::EVENT_MBUTTONDOWN) {
+            // Find the nearest vertex to the clicked point
+            const Point p(x, y);
+            delaunay->findNearestVertex(p, finding_nearest_vertex_trace, std::nullopt);
         }
     }
-
-
 };
 
-
-}
-
-
-
-
-
-
+} // namespace delaunay_triangulation
 
 int main()
 {

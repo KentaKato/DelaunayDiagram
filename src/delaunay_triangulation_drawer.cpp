@@ -26,9 +26,14 @@ void DelaunayTriangulationDrawer::switchFillTriangle(){
     fill_triangle_ = !fill_triangle_;
 }
 
-void DelaunayTriangulationDrawer::draw(cv::Mat &img)
+void DelaunayTriangulationDrawer::reset(cv::Mat &img)
 {
     img.setTo(white_);
+}
+
+void DelaunayTriangulationDrawer::draw(cv::Mat &img)
+{
+    this->reset(img);
     this->drawTriangles(img);
     this->drawVertices(img);
 }

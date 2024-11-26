@@ -89,6 +89,16 @@ void Vertex::draw(cv::Mat &img, const bool draw_coordinate_value, const cv::Scal
     }
 }
 
+double distance(const Vertex &v1, const Vertex &v2)
+{
+    return std::hypot(v1.x - v2.x, v1.y - v2.y);
+}
+
+double distance2(const Vertex &v1, const Vertex &v2)
+{
+    return std::pow(v1.x - v2.x, 2) + std::pow(v1.y - v2.y, 2);
+}
+
 void Circle::draw(cv::Mat &img, bool draw_center) const
 {
     cv::circle(img, cv::Point(center.x, center.y), radius, circle_color_, 1, cv::LINE_AA);
@@ -215,6 +225,11 @@ bool Triangle::isInCircumCircle(const Vertex &v) const
 
     // In the triangle is counterclockwise
     return det > 0;
+}
+
+std::vector<Vertex> Triangle::vertices() const
+{
+    return {v1, v2, v3};
 }
 
 bool Triangle::has(const Vertex &v) const

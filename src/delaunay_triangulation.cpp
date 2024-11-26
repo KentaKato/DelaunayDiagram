@@ -1,6 +1,8 @@
 #include <opencv2/opencv.hpp>
+#include <stdexcept>
 
 #include "DelaunayTriangulation/delaunay_triangulation.hpp"
+#include "DelaunayTriangulation/geometry_primitives.hpp"
 
 
 namespace delaunay_triangulation
@@ -39,19 +41,6 @@ void DelaunayTriangulation::reserveVerticesVector(const size_t size)
     vertices_.reserve(size);
 }
 
-std::vector<Triangle> DelaunayTriangulation::getTriangles() const
-{
-    std::vector<Triangle> triangles = triangles_;
-    triangles.erase(
-        std::remove_if(triangles.begin(), triangles.end(),
-            [this](const Triangle& triangle) {
-                return this->isSuperTriangle(triangle);
-            }),
-        triangles.end()
-    );
-    return triangles;
-}
-
 std::vector<Triangle> DelaunayTriangulation::getSuperTriangles() const
 {
     std::vector<Triangle> triangles = triangles_;
@@ -68,6 +57,31 @@ std::vector<Triangle> DelaunayTriangulation::getSuperTriangles() const
 std::vector<Triangle> DelaunayTriangulation::getAllTriangles() const
 {
     return triangles_;
+}
+
+Vertex DelaunayTriangulation::findNearestVertex(const Point & p, const std::optional<Vertex> seed_vertex_opt) const
+{
+    std::vector<Vertex> dummy_trace;
+    return this->findNearestVertex(p, dummy_trace, seed_vertex_opt, false);
+}
+
+Vertex DelaunayTriangulation::findNearestVertex(const Point & p, std::vector<Vertex> &trace, const std::optional<Vertex> seed_vertex_opt) const
+{
+    return this->findNearestVertex(p, trace, seed_vertex_opt, true);
+}
+
+std::vector<Triangle> DelaunayTriangulation::findTrianglesContainingVertex(const Vertex &v) const
+{
+    std::vector<Triangle> containing_triangles;
+    containing_triangles.reserve(10); // Sufficient capacity
+    for (const auto &t : getTriangles())
+    {
+        if (t.has(v))
+        {
+            containing_triangles.push_back(t);
+        }
+    }
+    return containing_triangles;
 }
 
 void DelaunayTriangulation::createDelaunayTriangles()
@@ -107,18 +121,33 @@ void DelaunayTriangulation::createDelaunayTriangles()
             triangles_.emplace_back(e.v1, e.v2, v);
         }
     }
+
+    // Remove super triangles
+    // Alias
+    auto& t_without_s = triangles_without_super_triangles_;
+    t_without_s = triangles_;
+    t_without_s.erase(
+        std::remove_if(t_without_s.begin(), t_without_s.end(),
+            [this](const Triangle& triangle) {
+                return this->isSuperTriangle(triangle);
+            }),
+        t_without_s.end()
+    );
 }
 
 void DelaunayTriangulation::clear()
 {
     vertices_.clear();
     triangles_.clear();
+    triangles_without_super_triangles_.clear();
     super_triangle_vertices_.clear();
 }
 
 void DelaunayTriangulation::reset()
 {
+    // NOTE: vertices_ is not cleared
     triangles_.clear();
+    triangles_without_super_triangles_.clear();
     super_triangle_vertices_.clear();
 }
 
@@ -213,6 +242,78 @@ std::vector<Edge> DelaunayTriangulation::parseUnsharedEdges(const std::vector<Tr
         }
     }
     return unshared_edges;
+}
+
+Vertex DelaunayTriangulation::findNearestVertex(
+    const Point & p,
+    std::vector<Vertex> &trace,
+    const std::optional<Vertex> seed_vertex_opt,
+    const bool record_trace) const
+{
+    // Recursive lambda function
+    auto find_nearest_vertex = [this, &trace, &record_trace](auto self, const Point & p, const Vertex & seed_vertex) -> Vertex
+    {
+        const auto triangles = this->findTrianglesContainingVertex(seed_vertex);
+
+        std::vector<Vertex> candidate_vertices;
+        for (const auto &t : triangles)
+        {
+            for (const auto &v : t.vertices())
+            {
+                if (std::find(candidate_vertices.begin(), candidate_vertices.end(), v) == candidate_vertices.end())
+                {
+                    candidate_vertices.push_back(v);
+                }
+            }
+        }
+        Vertex nearest_vertex;
+        double min_distance = std::numeric_limits<double>::max();
+        for (const auto &v : candidate_vertices)
+        {
+            const double dist = distance2(p, v);
+            if (dist < min_distance)
+            {
+                min_distance = dist;
+                nearest_vertex = v;
+            }
+        }
+
+        if (nearest_vertex == seed_vertex)
+        {
+            return nearest_vertex;
+        }
+        else
+        {
+            if (record_trace)
+            {
+                trace.push_back(nearest_vertex);
+            }
+            return self(self, p, nearest_vertex);
+        }
+    };
+
+    if (triangles_.empty())
+    {
+        throw std::runtime_error("No delaunay triangles are created.");
+    }
+
+    Vertex seed_vertex;
+    if (seed_vertex_opt.has_value())
+    {
+        seed_vertex = seed_vertex_opt.value();
+        if (!this->hasVertex(seed_vertex))
+        {
+            throw std::invalid_argument("The seed vertex is not in the vertices list." );
+        }
+    }
+    else
+    {
+        seed_vertex = getTriangles()[0].v1;
+    }
+
+    trace.clear();
+    trace.push_back(seed_vertex);
+    return find_nearest_vertex(find_nearest_vertex, p, seed_vertex);
 }
 
 } // namespace delaunay_Triangulation

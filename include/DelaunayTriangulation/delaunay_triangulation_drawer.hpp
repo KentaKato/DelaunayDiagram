@@ -16,6 +16,7 @@ class DelaunayTriangulationDrawer
 public:
     explicit DelaunayTriangulationDrawer(const DelaunayTriangulation &delaunay);
     void draw(cv::Mat &img);
+    void reset(cv::Mat &img);
     void switchDrawCircumCircles();
     void switchDrawSuperTriangles();
     void switchDrawVertexCoordinate();

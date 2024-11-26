@@ -16,6 +16,15 @@ A C++ implementation of the Delaunay Triangulation algorithm and Voronoi Diagram
 
 <img src=".readme/centroid_voronoi.gif" width="400" alt="Centroid Voronoi Diagram Demo"/>
 
+**Find the Nearest Vertex**
+You can efficiently find the vertex of the Delaunay triangulation that is nearest to a given point. This allows you to quickly determine which Voronoi region the point belongs to.
+
+
+<p float="left">
+  <img src=".readme/find_the_nearest_vertex.png" width="300" alt="Find the Nearest Vertex Demo"/>
+  <img src=".readme/find_the_nearest_vertex_voronoi.png" width="300" alt="Find the Nearest Vertex Demo with Voronoi Diagram"/>
+</p>
+
 ## Installation
 
 ### Prerequisites
@@ -68,7 +77,8 @@ cd build
 ./interactive_delaunay_voronoi
 ```
 
-- **Add Vertex**: Click on the canvas to add a new vertex.
+- **Add Vertex**: Click Left mouse button on the canvas to add a new vertex.
+- **Find the Nearest Vertex**: Click Middle mouse button on the canvas to find the nearest vertex from the clicked point.
 - **Keyboard Shortcuts**:
   - **`v`**: Toggle drawing of Voronoi Diagram.
   - **`c`**: Toggle drawing of circumcircles.

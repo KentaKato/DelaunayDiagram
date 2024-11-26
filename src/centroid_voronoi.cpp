@@ -50,16 +50,6 @@ public:
         drawer_.setFillTriangle(false);
         addRandomVertices(delaunay_, image_width_, image_height_, num_vertices_);
 
-        for (const int &x : {0, image_width})
-        {
-            for (const int &y : {0, image_height})
-            {
-                Point p{static_cast<double>(x), static_cast<double>(y)};
-                Site s;
-                pixel_belonging_cells_[p] = s;
-            }
-        }
-
         const auto& step = pixel_step_size_for_centroid_calc;
         for (int x = 0; x < image_width; x += step)
         {
@@ -86,12 +76,6 @@ public:
             for (const auto & [site, _] : voronoi_cells)
             {
                 sites.push_back(site);
-            }
-
-            /// Find the site of the Voronoi cell that contains each pixel.
-            for (const auto & [pixel, _]: pixel_belonging_cells_)
-            {
-                VoronoiDiagram::findBelongingCell(sites, pixel, pixel_belonging_cells_[pixel]);
             }
 
             /// Compute the centroid of each Voronoi cell.

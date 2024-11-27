@@ -70,20 +70,6 @@ Vertex DelaunayTriangulation::findNearestVertex(const Point & p, std::vector<Ver
     return this->findNearestVertex(p, trace, seed_vertex_opt, true);
 }
 
-std::vector<Triangle> DelaunayTriangulation::findTrianglesContainingVertex(const Vertex &v) const
-{
-    std::vector<Triangle> containing_triangles;
-    containing_triangles.reserve(10); // Sufficient capacity
-    for (const auto &t : getTriangles())
-    {
-        if (t.has(v))
-        {
-            containing_triangles.push_back(t);
-        }
-    }
-    return containing_triangles;
-}
-
 void DelaunayTriangulation::createDelaunayTriangles()
 {
     reset();
@@ -133,6 +119,24 @@ void DelaunayTriangulation::createDelaunayTriangles()
             }),
         t_without_s.end()
     );
+
+    // Update triangles_containing_vertex_
+    triangles_containing_vertex_.clear();
+    for (const auto &t : triangles_without_super_triangles_)
+    {
+        for (const auto &v : t.vertices())
+        {
+            if (!triangles_containing_vertex_.contains(v))
+            {
+                triangles_containing_vertex_[v] = {t};
+            }
+            else
+            {
+                triangles_containing_vertex_[v].push_back(t);
+            }
+        }
+    }
+
 }
 
 void DelaunayTriangulation::clear()
@@ -253,9 +257,10 @@ Vertex DelaunayTriangulation::findNearestVertex(
     // Recursive lambda function
     auto find_nearest_vertex = [this, &trace, &record_trace](auto self, const Point & p, const Vertex & seed_vertex) -> Vertex
     {
-        const auto triangles = this->findTrianglesContainingVertex(seed_vertex);
+        const auto & triangles = triangles_containing_vertex_.at(seed_vertex);
 
         std::vector<Vertex> candidate_vertices;
+        candidate_vertices.reserve(3 * triangles.size()); // sufficient capacity
         for (const auto &t : triangles)
         {
             for (const auto &v : t.vertices())

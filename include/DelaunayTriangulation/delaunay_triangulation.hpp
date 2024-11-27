@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <opencv2/opencv.hpp>
+#include <unordered_map>
 
 
 // Project
@@ -41,6 +42,7 @@ private:
     std::vector<Triangle> triangles_, triangles_without_super_triangles_;
     std::vector<Vertex> vertices_;
     std::vector<Vertex> super_triangle_vertices_;
+    std::unordered_map<Vertex, std::vector<Triangle>> triangles_containing_vertex_;
 
     void reset();
     void erase(const Triangle &t);

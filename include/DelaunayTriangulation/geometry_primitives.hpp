@@ -3,6 +3,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <functional>
 
 namespace delaunay_triangulation
 {
@@ -95,5 +96,15 @@ private:
 bool operator==(const Triangle &lhs, const Triangle &rhs);
 
 } // namespace delaunay_Triangulation
+
+
+template<>
+struct std::hash<delaunay_triangulation::Vertex> {
+    size_t operator()(const delaunay_triangulation::Vertex& obj) const {
+        std::size_t h1 = std::hash<double>{}(obj.x);
+        std::size_t h2 = std::hash<double>{}(obj.y);
+        return h1 ^ (h2 << 1);
+    }
+};
 
 #endif

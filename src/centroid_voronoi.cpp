@@ -71,17 +71,10 @@ public:
             // Create Voronoi cells
             const auto voronoi_cells = VoronoiDiagram::create(delaunay_.getAllTriangles());
 
-            std::vector<Site> sites;
-            sites.reserve(delaunay_.getVertices().size() + 3 /* super triangle vertices */);
-            for (const auto & [site, _] : voronoi_cells)
-            {
-                sites.push_back(site);
-            }
-
             /// Compute the centroid of each Voronoi cell.
             std::unordered_map<Site, Centroid> voronoi_centroids;
             VoronoiDiagram::computeVoronoiCentroids(
-                sites,
+                delaunay_,
                 pixel_weight_,
                 voronoi_centroids);
 
@@ -102,7 +95,7 @@ public:
                 cv::waitKey(1000);
             }
             else {
-                cv::waitKey(50);
+                cv::waitKey(1);
             }
 
             /// Update the vertices positions
@@ -142,7 +135,7 @@ private:
 int main()
 {
     delaunay_triangulation::CentroidVoronoiDiagram centroid_voronoi(
-        1000,
+        500,
         500,
         500,
         4);

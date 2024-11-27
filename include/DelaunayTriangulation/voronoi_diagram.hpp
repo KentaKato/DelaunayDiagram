@@ -7,6 +7,8 @@
 
 // Project
 #include "DelaunayTriangulation/geometry_primitives.hpp"
+#include "DelaunayTriangulation/delaunay_triangulation.hpp"
+#include "delaunay_triangulation.hpp"
 
 namespace delaunay_triangulation
 {
@@ -21,11 +23,11 @@ class VoronoiDiagram
 public:
     static std::unordered_map<Site, Cell> create(const std::vector<Triangle> & delaunay_triangles);
     static void computeVoronoiCentroids(
-        const std::vector<Site> &sites,
+        const DelaunayTriangulation &delaunay,
         const std::unordered_map<Point, double> &weight_map,
         std::unordered_map<Site, Centroid> &voronoi_centroids);
     static void createBelongingCellMap(
-        const std::vector<Site> &sites,
+        const DelaunayTriangulation &delaunay,
         const std::vector<Point> &points,
         std::unordered_map<Point, Site> &belonging_cells);
     static void findBelongingCell(

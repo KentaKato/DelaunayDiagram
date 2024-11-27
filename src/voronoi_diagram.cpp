@@ -35,7 +35,7 @@ std::unordered_map<Site, Cell> VoronoiDiagram::create(const std::vector<Triangle
 }
 
 void VoronoiDiagram::computeVoronoiCentroids(
-    const std::vector<Site> &sites,
+    const DelaunayTriangulation &delaunay,
     const std::unordered_map<Point, double> &weight_map,
     std::unordered_map<Site, Centroid> &voronoi_centroids)
 {
@@ -49,9 +49,9 @@ void VoronoiDiagram::computeVoronoiCentroids(
     }
 
     std::unordered_map<Point, Site> belonging_cells;
-    createBelongingCellMap(sites, points, belonging_cells);
+    createBelongingCellMap(delaunay, points, belonging_cells);
     std::unordered_map<Site, double> total_weight;
-    for (const auto &site : sites)
+    for (const auto &site : delaunay.getVertices())
     {
         total_weight[site] = 0.0;
     }
@@ -80,15 +80,19 @@ void VoronoiDiagram::computeVoronoiCentroids(
 }
 
 void VoronoiDiagram::createBelongingCellMap(
-    const std::vector<Site> &sites,
+    const DelaunayTriangulation &delaunay,
     const std::vector<Point> &points,
     std::unordered_map<Point, Site> &belonging_cells)
 {
     Site site_of_belonging_cell;
+    Vertex seed_vertex = delaunay.getVertices().front();
     for (const auto &p : points)
     {
-        findBelongingCell(sites, p, site_of_belonging_cell);
-        belonging_cells[p] = site_of_belonging_cell;
+        const auto nearest_v = delaunay.findNearestVertex(p, seed_vertex);
+        belonging_cells[p] = nearest_v;
+        seed_vertex = nearest_v;
+        // findBelongingCell(sites, p, site_of_belonging_cell);
+        // belonging_cells[p] = site_of_belonging_cell;
     }
 }
 

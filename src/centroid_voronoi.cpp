@@ -51,12 +51,25 @@ public:
         addRandomVertices(delaunay_, image_width_, image_height_, num_vertices_);
 
         const auto& step = pixel_step_size_for_centroid_calc;
+        bool increment = true;
         for (int x = 0; x < image_width; x += step)
         {
-            for (int y = 0; y < image_height; y += step)
+            // NOTE: Alternating the increment and decrement of y to give a better seed to findNearestVertex()
+            if(increment)
             {
-                pixel_weight_[Point{static_cast<double>(x), static_cast<double>(y)}] = 1.0;
+                for (int y = 0; y < image_height; y += step)
+                {
+                    pixel_weight_[Point{static_cast<double>(x), static_cast<double>(y)}] = 1.0;
+                }
             }
+            else
+            {
+                for (int y = image_height -1 ; y >= 0; y -= step)
+                {
+                    pixel_weight_[Point{static_cast<double>(x), static_cast<double>(y)}] = 1.0;
+                }
+            }
+            increment = !increment;
         }
     }
 

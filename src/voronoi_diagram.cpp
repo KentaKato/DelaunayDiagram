@@ -54,19 +54,12 @@ void VoronoiDiagram::computeVoronoiCentroids(
     for (const auto &site : delaunay.getVertices())
     {
         total_weight[site] = 0.0;
+        voronoi_centroids[site] = Centroid{0, 0};
     }
 
     for (const auto & [point, weight] : weight_map)
     {
         const auto &belonging_cell = belonging_cells[point];
-        if (voronoi_centroids.find(belonging_cell) == voronoi_centroids.end())
-        {
-            voronoi_centroids[belonging_cell] = point;
-            voronoi_centroids[belonging_cell].x *= weight;
-            voronoi_centroids[belonging_cell].y *= weight;
-            total_weight[belonging_cell] = weight;
-            continue;
-        }
         auto & centroid = voronoi_centroids[belonging_cell];
         centroid.x += point.x * weight;
         centroid.y += point.y * weight;
@@ -74,8 +67,14 @@ void VoronoiDiagram::computeVoronoiCentroids(
     }
     for (auto & [site, centroid] : voronoi_centroids)
     {
-        centroid.x /= total_weight[site];
-        centroid.y /= total_weight[site];
+        double weight = total_weight[site];
+        if (weight == 0.0)
+        {
+            centroid = site;
+            continue;
+        }
+        centroid.x /= weight;
+        centroid.y /= weight;
     }
 }
 
@@ -91,8 +90,6 @@ void VoronoiDiagram::createBelongingCellMap(
         const auto nearest_v = delaunay.findNearestVertex(p, seed_vertex);
         belonging_cells[p] = nearest_v;
         seed_vertex = nearest_v;
-        // findBelongingCell(sites, p, site_of_belonging_cell);
-        // belonging_cells[p] = site_of_belonging_cell;
     }
 }
 

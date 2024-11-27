@@ -79,7 +79,7 @@ public:
             }
 
             /// Compute the centroid of each Voronoi cell.
-            std::map<Site, Centroid> voronoi_centroids;
+            std::unordered_map<Site, Centroid> voronoi_centroids;
             VoronoiDiagram::computeVoronoiCentroids(
                 sites,
                 pixel_weight_,
@@ -129,10 +129,10 @@ private:
     cv::Mat img_;
 
     /// pixel_belonging_cells_[p] is the site of the Voronoi cell that contains the point p.
-    std::map<Point, Site> pixel_belonging_cells_;
+    std::unordered_map<Point, Site> pixel_belonging_cells_;
 
-    /// en: The weight of each point used for centroid calculation.
-    std::map<Point, double> pixel_weight_;
+    /// The weight of each point used for centroid calculation.
+    std::unordered_map<Point, double> pixel_weight_;
 
 };
 
@@ -142,7 +142,7 @@ private:
 int main()
 {
     delaunay_triangulation::CentroidVoronoiDiagram centroid_voronoi(
-        100,
+        1000,
         500,
         500,
         4);

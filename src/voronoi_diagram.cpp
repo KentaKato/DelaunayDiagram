@@ -7,9 +7,9 @@
 namespace delaunay_triangulation
 {
 
-std::map<Site, Cell> VoronoiDiagram::create(const std::vector<Triangle> & delaunay_triangles)
+std::unordered_map<Site, Cell> VoronoiDiagram::create(const std::vector<Triangle> & delaunay_triangles)
 {
-    std::map <Site, Cell> voronoi_cells;
+    std::unordered_map <Site, Cell> voronoi_cells;
 
     // Store circumcenters around each vertex
     for (const auto &t : delaunay_triangles)
@@ -36,8 +36,8 @@ std::map<Site, Cell> VoronoiDiagram::create(const std::vector<Triangle> & delaun
 
 void VoronoiDiagram::computeVoronoiCentroids(
     const std::vector<Site> &sites,
-    const std::map<Point, double> &weight_map,
-    std::map<Site, Centroid> &voronoi_centroids)
+    const std::unordered_map<Point, double> &weight_map,
+    std::unordered_map<Site, Centroid> &voronoi_centroids)
 {
     voronoi_centroids.clear();
 
@@ -48,9 +48,9 @@ void VoronoiDiagram::computeVoronoiCentroids(
         points.push_back(point);
     }
 
-    std::map<Point, Site> belonging_cells;
+    std::unordered_map<Point, Site> belonging_cells;
     createBelongingCellMap(sites, points, belonging_cells);
-    std::map<Site, double> total_weight;
+    std::unordered_map<Site, double> total_weight;
     for (const auto &site : sites)
     {
         total_weight[site] = 0.0;
@@ -82,7 +82,7 @@ void VoronoiDiagram::computeVoronoiCentroids(
 void VoronoiDiagram::createBelongingCellMap(
     const std::vector<Site> &sites,
     const std::vector<Point> &points,
-    std::map<Point, Site> &belonging_cells)
+    std::unordered_map<Point, Site> &belonging_cells)
 {
     Site site_of_belonging_cell;
     for (const auto &p : points)
@@ -114,7 +114,7 @@ void VoronoiDiagram::findBelongingCell(
 
 void VoronoiDiagram::draw(
     cv::Mat &img,
-    const std::map<Vertex, std::vector<Vertex>> &voronoi_cells,
+    const std::unordered_map<Vertex, std::vector<Vertex>> &voronoi_cells,
     const cv::Scalar &color)
 {
     for (const auto& [vertex, circumcenters] : voronoi_cells) {

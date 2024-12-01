@@ -26,6 +26,9 @@ You can efficiently find the vertex of the Delaunay triangulation that is neares
   <img src=".readme/find_the_nearest_vertex_voronoi.png" width="400" alt="Find the Nearest Vertex Demo with Voronoi Diagram"/>
 </p>
 
+**Route Extraction by Using Generalized Voronoi Diagram**
+<img src=".readme/generalized_voronoi_demo.gif" width="500" alt="Route Extraction by Using Generalized Voronoi Diagram"/>
+
 ## Installation
 
 ### Prerequisites

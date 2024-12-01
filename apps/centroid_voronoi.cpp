@@ -43,11 +43,9 @@ public:
         : num_vertices_(num_vertices),
           image_width_(image_width),
           image_height_(image_height),
-          delaunay_(),
-          drawer_(delaunay_)
+          delaunay_()
     {
         img_ = cv::Mat(image_height, image_width, CV_8UC3, bg_color_);
-        drawer_.setFillTriangle(false);
         addRandomVertices(delaunay_, image_width_, image_height_, num_vertices_);
 
         const auto& step = pixel_step_size_for_centroid_calc;
@@ -108,7 +106,7 @@ public:
                 cv::waitKey(1000);
             }
             else {
-                cv::waitKey(1);
+                cv::waitKey(20);
             }
 
             /// Update the vertices positions
@@ -130,7 +128,6 @@ private:
     const int image_width_, image_height_;
 
     DelaunayTriangulation delaunay_;
-    DelaunayTriangulationDrawer drawer_;
 
     cv::Mat img_;
 
@@ -148,7 +145,7 @@ private:
 int main()
 {
     delaunay_triangulation::CentroidVoronoiDiagram centroid_voronoi(
-        500,
+        50,
         500,
         500,
         4);

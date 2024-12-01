@@ -242,6 +242,23 @@ bool Triangle::has(const Edge &e) const
     return this->has(e.v1) && this->has(e.v2);
 }
 
+bool Triangle::hasSharedEdge(const Triangle &other) const
+{
+    std::vector<Vertex> shared_vertices;
+    for (const auto &v : other.vertices())
+    {
+        if (this->has(v))
+        {
+            shared_vertices.push_back(v);
+        }
+    }
+    if (shared_vertices.size() == 2)
+    {
+        return true;
+    }
+    return false;
+}
+
 std::ostream& operator<<(std::ostream &os, const Triangle &t)
 {
     os << "\n- v1: " << t.v1 << "\n- v2: " << t.v2 << "\n- v3: " << t.v3;

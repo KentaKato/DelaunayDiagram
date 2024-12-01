@@ -83,12 +83,13 @@ public:
     [[nodiscard]] bool isInCircumCircle(const Vertex &v) const;
     [[nodiscard]] bool has(const Edge &e) const;
     [[nodiscard]] bool has(const Vertex &v) const;
+    std::vector<Vertex> vertices() const;
+    bool hasSharedEdge(const Triangle &other) const;
+
     friend std::ostream& operator<<(std::ostream &os, const Triangle &t);
 
     Vertex v1, v2, v3;
     Circle circum_circle;
-
-    std::vector<Vertex> vertices() const;
 
 private:
     void validate() const;

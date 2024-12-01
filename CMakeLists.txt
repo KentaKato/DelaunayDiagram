@@ -26,7 +26,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_executable(interactive_delaunay_voronoi
-  src/interactive_delaunay_voronoi.cpp
+  apps/interactive_delaunay_voronoi.cpp
 )
 
 target_link_libraries(interactive_delaunay_voronoi
@@ -34,9 +34,16 @@ target_link_libraries(interactive_delaunay_voronoi
 )
 
 add_executable(centroid_voronoi
-  src/centroid_voronoi.cpp
+  apps/centroid_voronoi.cpp
 )
 
 target_link_libraries(centroid_voronoi
+  ${PROJECT_NAME}
+)
+add_executable(generalized_voronoi
+  apps/generalized_voronoi_diagram.cpp
+)
+
+target_link_libraries(generalized_voronoi
   ${PROJECT_NAME}
 )
